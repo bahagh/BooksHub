@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: books_postgres
+    environment:
+      POSTGRES_DB: books
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: baha123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - books-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway/ApiGateway
+      dockerfile: Dockerfile
+    container_name: books_gateway
+    ports:
+      - "5000:5000"
+    depends_on:
+      - user-service
+      - books-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - Jwt__Key=SuperSecretKeyThatIsAtLeast32Characters!
+      - Jwt__Issuer=BooksApp
+      - Jwt__Audience=BooksApp
+    networks:
+      - books-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/UserService/UserService
+      dockerfile: Dockerfile
+    container_name: books_user_service
+    ports:
+      - "5001:5001"
+    depends_on:
+      - postgres
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5001
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=books;Username=postgres;Password=baha123
+      - Jwt__Key=SuperSecretKeyThatIsAtLeast32Characters!
+      - Jwt__Issuer=BooksApp
+      - Jwt__Audience=BooksApp
+      - Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+    networks:
+      - books-network
+
+  # Books Service
+  books-service:
+    build:
+      context: ./services/BooksService/BooksService
+      dockerfile: Dockerfile
+    container_name: books_books_service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - postgres
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5002
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=books;Username=postgres;Password=baha123
+      - Jwt__Key=SuperSecretKeyThatIsAtLeast32Characters!
+      - Jwt__Issuer=BooksApp
+      - Jwt__Audience=BooksApp
+    networks:
+      - books-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: books_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    networks:
+      - books-network
+
+volumes:
+  postgres_data:
+
+networks:
+  books-network:
+    driver: bridge
