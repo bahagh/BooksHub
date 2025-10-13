@@ -35,13 +35,14 @@ namespace UserService.Services
             var jwtAudience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            key.KeyId = "BooksAppKey"; // Add explicit KeyId to fix "kid is missing" error
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim("sub", user.Id.ToString()),
+                new Claim("email", user.Email),
+                new Claim("name", user.FullName),
                 new Claim("firstName", user.FirstName),
                 new Claim("lastName", user.LastName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

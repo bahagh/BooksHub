@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, handleApiError } from './api';
 import {
   Book,
   CreateBookRequest,
@@ -23,30 +23,228 @@ class BooksService {
 
   // Book CRUD Operations
   async getBooks(params?: BookQueryParams): Promise<PaginatedResponse<Book>> {
-    const response = await api.get<ApiResponse<PaginatedResponse<Book>>>(
-      this.BASE_URL,
-      { params }
-    );
-    return response.data;
+    try {
+      const response = await api.get<ApiResponse<PaginatedResponse<Book>>>(
+        this.BASE_URL,
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Get books error:', error);
+      throw {
+        type: error.type || 'BOOKS_FETCH_ERROR',
+        message: handleApiError(error, 'Failed to load books. Please try again.')
+      };
+    }
   }
 
   async getBookById(id: string): Promise<Book> {
-    const response = await api.get<ApiResponse<Book>>(`${this.BASE_URL}/${id}`);
-    return response.data;
+    try {
+      if (!id) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Book ID is required'
+        };
+      }
+
+      const response = await api.get<ApiResponse<Book>>(`${this.BASE_URL}/${id}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Get book error:', error);
+      
+      if (error.status === 404) {
+        throw {
+          type: 'NOT_FOUND_ERROR',
+          message: 'Book not found'
+        };
+      }
+      
+      throw {
+        type: error.type || 'BOOK_FETCH_ERROR',
+        message: handleApiError(error, 'Failed to load book details')
+      };
+    }
   }
 
   async createBook(bookData: CreateBookRequest): Promise<Book> {
-    const response = await api.post<ApiResponse<Book>>(this.BASE_URL, bookData);
-    return response.data;
+    try {
+      // Validate required fields
+      if (!bookData.title?.trim()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Book title is required'
+        };
+      }
+
+      if (!bookData.author?.trim()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Author name is required'
+        };
+      }
+
+      if (!bookData.isbn?.trim()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'ISBN is required'
+        };
+      }
+
+      // Validate ISBN format (basic check)
+      const isbnRegex = /^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$/;
+      if (!isbnRegex.test(bookData.isbn.replace(/[- ]/g, ''))) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Please enter a valid ISBN'
+        };
+      }
+
+      if (bookData.publicationYear && bookData.publicationYear > new Date().getFullYear()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Publication year cannot be in the future'
+        };
+      }
+
+      const response = await api.post<ApiResponse<Book>>(this.BASE_URL, bookData);
+      console.log('✅ Book created successfully');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Create book error:', error);
+      
+      if (error.status === 409) {
+        throw {
+          type: 'CONFLICT_ERROR',
+          message: 'A book with this ISBN already exists'
+        };
+      }
+
+      if (error.status === 401) {
+        throw {
+          type: 'AUTH_ERROR',
+          message: 'You must be logged in to create books'
+        };
+      }
+
+      if (error.status === 403) {
+        throw {
+          type: 'FORBIDDEN_ERROR',
+          message: 'You do not have permission to create books'
+        };
+      }
+      
+      throw {
+        type: error.type || 'BOOK_CREATE_ERROR',
+        message: handleApiError(error, 'Failed to create book. Please try again.')
+      };
+    }
   }
 
   async updateBook(id: string, bookData: UpdateBookRequest): Promise<Book> {
-    const response = await api.put<ApiResponse<Book>>(`${this.BASE_URL}/${id}`, bookData);
-    return response.data;
+    try {
+      if (!id) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Book ID is required'
+        };
+      }
+
+      // Validate fields if they are provided
+      if (bookData.title !== undefined && !bookData.title?.trim()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Book title cannot be empty'
+        };
+      }
+
+      if (bookData.author !== undefined && !bookData.author?.trim()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Author name cannot be empty'
+        };
+      }
+
+      if (bookData.publicationYear && bookData.publicationYear > new Date().getFullYear()) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Publication year cannot be in the future'
+        };
+      }
+
+      const response = await api.put<ApiResponse<Book>>(`${this.BASE_URL}/${id}`, bookData);
+      console.log('✅ Book updated successfully');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Update book error:', error);
+      
+      if (error.status === 404) {
+        throw {
+          type: 'NOT_FOUND_ERROR',
+          message: 'Book not found'
+        };
+      }
+
+      if (error.status === 401) {
+        throw {
+          type: 'AUTH_ERROR',
+          message: 'You must be logged in to update books'
+        };
+      }
+
+      if (error.status === 403) {
+        throw {
+          type: 'FORBIDDEN_ERROR',
+          message: 'You do not have permission to update this book'
+        };
+      }
+      
+      throw {
+        type: error.type || 'BOOK_UPDATE_ERROR',
+        message: handleApiError(error, 'Failed to update book. Please try again.')
+      };
+    }
   }
 
   async deleteBook(id: string): Promise<void> {
-    await api.delete(`${this.BASE_URL}/${id}`);
+    try {
+      if (!id) {
+        throw {
+          type: 'VALIDATION_ERROR',
+          message: 'Book ID is required'
+        };
+      }
+
+      await api.delete(`${this.BASE_URL}/${id}`);
+      console.log('✅ Book deleted successfully');
+    } catch (error: any) {
+      console.error('❌ Delete book error:', error);
+      
+      if (error.status === 404) {
+        throw {
+          type: 'NOT_FOUND_ERROR',
+          message: 'Book not found'
+        };
+      }
+
+      if (error.status === 401) {
+        throw {
+          type: 'AUTH_ERROR',
+          message: 'You must be logged in to delete books'
+        };
+      }
+
+      if (error.status === 403) {
+        throw {
+          type: 'FORBIDDEN_ERROR',
+          message: 'You do not have permission to delete this book'
+        };
+      }
+      
+      throw {
+        type: error.type || 'BOOK_DELETE_ERROR',
+        message: handleApiError(error, 'Failed to delete book. Please try again.')
+      };
+    }
   }
 
   // Search functionality

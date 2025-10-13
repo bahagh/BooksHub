@@ -1,9 +1,14 @@
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using UserService.Data;
 using UserService.Services;
+
+// Clear default claim type mappings to ensure JWT claims are not modified
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,23 +42,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Database
-if (builder.Environment.IsDevelopment())
-{
-    // Use in-memory database for development/testing when PostgreSQL is not available
-    builder.Services.AddDbContext<UserDbContext>(options =>
-        options.UseInMemoryDatabase("BooksUsersDB"));
-}
-else
-{
-    builder.Services.AddDbContext<UserDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-}
+// Database - Always use PostgreSQL
+builder.Services.AddDbContext<UserDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
+
+var symmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+symmetricKey.KeyId = "BooksAppKey"; // Match the KeyId from BooksService
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -61,13 +60,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            IssuerSigningKey = symmetricKey,
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
             ValidateAudience = true,
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            RequireSignedTokens = true,
+            RequireExpirationTime = true,
+            ValidateTokenReplay = false,
+            TryAllIssuerSigningKeys = true
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError("Authentication failed: {Error}", context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                logger.LogInformation("Token validated successfully for user: {UserId}", userId);
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -75,6 +95,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IUserService, UserService.Services.UserService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // CORS
 builder.Services.AddCors(options =>

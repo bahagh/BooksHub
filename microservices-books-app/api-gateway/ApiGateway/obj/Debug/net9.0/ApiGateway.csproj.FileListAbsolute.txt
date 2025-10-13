@@ -52,3 +52,4 @@ C:\Users\Asus\Desktop\books\microservices-books-app\api-gateway\ApiGateway\obj\D
 C:\Users\Asus\Desktop\books\microservices-books-app\api-gateway\ApiGateway\obj\Debug\net9.0\ApiGateway.pdb
 C:\Users\Asus\Desktop\books\microservices-books-app\api-gateway\ApiGateway\obj\Debug\net9.0\ApiGateway.genruntimeconfig.cache
 C:\Users\Asus\Desktop\books\microservices-books-app\api-gateway\ApiGateway\obj\Debug\net9.0\ref\ApiGateway.dll
+C:\Users\Asus\Desktop\books\microservices-books-app\api-gateway\ApiGateway\obj\Debug\net9.0\ApiGateway.sourcelink.json

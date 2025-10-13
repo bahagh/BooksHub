@@ -20,6 +20,7 @@ import {
   Comment as CommentIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { ChangePasswordSection } from './ChangePasswordSection';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -179,6 +180,11 @@ const ProfilePage: React.FC = () => {
           </Paper>
         </Grid>
 
+        {/* Change Password Section */}
+        <Grid item xs={12}>
+          <ChangePasswordSection />
+        </Grid>
+
         {/* Account Settings */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
@@ -187,7 +193,6 @@ const ProfilePage: React.FC = () => {
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Box display="flex" flexWrap="wrap" gap={2}>
-              <Button variant="outlined">Change Password</Button>
               <Button variant="outlined">Privacy Settings</Button>
               <Button variant="outlined">Notification Preferences</Button>
               <Button variant="outlined" color="error">

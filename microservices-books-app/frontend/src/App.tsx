@@ -12,6 +12,8 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 // Page Components
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
 import BooksPage from './pages/Books/BooksPage';
 import BookDetailsPage from './pages/Books/BookDetailsPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
@@ -86,6 +88,8 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 
                 {/* Protected Routes */}
                 <Route

@@ -1,7 +1,9 @@
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Serilog;
@@ -9,6 +11,9 @@ using BooksService.Data;
 using BooksService.Services;
 using BooksService.Validators;
 using BooksService.DTOs;
+
+// Clear default claim type mappings to ensure JWT claims are not modified
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -60,19 +65,70 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationExcep
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
 
+var symmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+symmetricKey.KeyId = "BooksAppKey"; // Match the KeyId from UserService
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            IssuerSigningKey = symmetricKey,
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
             ValidateAudience = true,
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            // Fix for "kid is missing" error
+            RequireSignedTokens = true,
+            RequireExpirationTime = true,
+            ValidateTokenReplay = false,
+            TryAllIssuerSigningKeys = true
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                logger.LogInformation("OnMessageReceived - Authorization header: {Header}", 
+                    string.IsNullOrEmpty(authHeader) ? "MISSING" : authHeader.Substring(0, Math.Min(50, authHeader.Length)));
+                logger.LogInformation("OnMessageReceived - Token: {Token}", 
+                    string.IsNullOrEmpty(context.Token) ? "NOT EXTRACTED YET" : "Token present");
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError("Authentication failed: {Error}", context.Exception.Message);
+                logger.LogError("Authentication failed details: {Details}", context.Exception.ToString());
+                logger.LogError("Exception type: {Type}", context.Exception.GetType().Name);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("Token validated successfully for user: {UserId}", 
+                    context.Principal?.FindFirst("sub")?.Value ?? 
+                    context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown");
+                
+                // Log all claims for debugging
+                foreach (var claim in context.Principal?.Claims ?? new Claim[0])
+                {
+                    logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
+                }
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("Authorization challenge triggered: {Error}", context.Error);
+                logger.LogWarning("Error Description: {ErrorDescription}", context.ErrorDescription);
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -116,11 +172,19 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Apply database migrations
-using (var scope = app.Services.CreateScope())
+// Apply database migrations with error handling
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<BooksDbContext>();
-    context.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<BooksDbContext>();
+        context.Database.EnsureCreated(); // More tolerant than Migrate()
+        Log.Information("Database initialized successfully");
+    }
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Database initialization failed, continuing without database");
 }
 
 app.UseSerilogRequestLogging();

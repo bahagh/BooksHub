@@ -13,17 +13,22 @@ namespace UserService.Services
         Task<bool> DeleteUserAsync(Guid userId);
         Task<bool> ValidatePasswordAsync(string email, string password);
         Task<IEnumerable<User>> GetAllUsersAsync();
+        Task<bool> GeneratePasswordResetTokenAsync(string email);
+        Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+        Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
     }
 
     public class UserService : IUserService
     {
         private readonly Data.UserDbContext _context;
         private readonly ILogger<UserService> _logger;
+        private readonly IEmailService _emailService;
 
-        public UserService(Data.UserDbContext context, ILogger<UserService> logger)
+        public UserService(Data.UserDbContext context, ILogger<UserService> logger, IEmailService emailService)
         {
             _context = context;
             _logger = logger;
+            _emailService = emailService;
         }
 
         public async Task<User?> GetUserByIdAsync(Guid userId)
@@ -117,6 +122,100 @@ namespace UserService.Services
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
             return await _context.Users.ToListAsync();
+        }
+
+        public async Task<bool> GeneratePasswordResetTokenAsync(string email)
+        {
+            var user = await GetUserByEmailAsync(email);
+            if (user == null)
+            {
+                // Don't reveal that user doesn't exist - return true anyway
+                _logger.LogWarning("Password reset requested for non-existent email: {Email}", email);
+                return true;
+            }
+
+            // Generate a secure random token
+            var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            user.PasswordResetToken = token;
+            user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1); // Token valid for 1 hour
+
+            await _context.SaveChangesAsync();
+
+            // Send email
+            await _emailService.SendPasswordResetEmailAsync(user.Email, token, user.FirstName ?? user.Username);
+
+            _logger.LogInformation("Password reset token generated for user: {UserId}", user.Id);
+            return true;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await GetUserByEmailAsync(email);
+            if (user == null)
+            {
+                _logger.LogWarning("Password reset attempted for non-existent email: {Email}", email);
+                return false;
+            }
+
+            // Validate token
+            if (string.IsNullOrEmpty(user.PasswordResetToken) || 
+                user.PasswordResetToken != token || 
+                !user.PasswordResetTokenExpiry.HasValue || 
+                user.PasswordResetTokenExpiry.Value < DateTime.UtcNow)
+            {
+                _logger.LogWarning("Invalid or expired password reset token for user: {UserId}", user.Id);
+                return false;
+            }
+
+            // Hash new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            
+            // Clear reset token
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiry = null;
+            
+            // Reset failed login attempts
+            user.FailedLoginAttempts = 0;
+            user.AccountLockedUntil = null;
+            
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Send notification email
+            await _emailService.SendPasswordChangedNotificationAsync(user.Email, user.FirstName ?? user.Username);
+
+            _logger.LogInformation("Password reset successful for user: {UserId}", user.Id);
+            return true;
+        }
+
+        public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("Password change attempted for non-existent user: {UserId}", userId);
+                return false;
+            }
+
+            // Verify current password
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            {
+                _logger.LogWarning("Password change failed - incorrect current password for user: {UserId}", userId);
+                return false;
+            }
+
+            // Hash new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Send notification email
+            await _emailService.SendPasswordChangedNotificationAsync(user.Email, user.FirstName ?? user.Username);
+
+            _logger.LogInformation("Password changed successfully for user: {UserId}", userId);
+            return true;
         }
     }
 }
