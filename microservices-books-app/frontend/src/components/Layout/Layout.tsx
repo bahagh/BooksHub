@@ -48,21 +48,33 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    text: 'Dashboard',
+    text: 'Home',
     icon: <DashboardIcon />,
     path: '/dashboard',
     requireAuth: true,
   },
   {
-    text: 'Books',
-    icon: <BookIcon />,
+    text: 'Discover Books',
+    icon: <SearchIcon />,
     path: '/books',
+    requireAuth: true,
+  },
+  {
+    text: 'My Library',
+    icon: <BookIcon />,
+    path: '/my-books',
     requireAuth: true,
   },
   {
     text: 'Profile',
     icon: <PersonIcon />,
     path: '/profile',
+    requireAuth: true,
+  },
+  {
+    text: 'Settings',
+    icon: <SettingsIcon />,
+    path: '/settings',
     requireAuth: true,
   },
 ];

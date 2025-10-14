@@ -9,11 +9,9 @@ import {
   Link,
   Alert,
   CircularProgress,
-  Divider,
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import { Google as GoogleIcon } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
@@ -72,10 +70,7 @@ const LoginPage: React.FC = () => {
     },
   });
 
-  const handleGoogleLogin = async () => {
-    // TODO: Implement Google OAuth
-    setError('Google login not implemented yet');
-  };
+
 
   if (isLoading) {
     return (
@@ -198,26 +193,6 @@ const LoginPage: React.FC = () => {
               ) : (
                 'Sign In'
               )}
-            </Button>
-
-            {/* Divider */}
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                or
-              </Typography>
-            </Divider>
-
-            {/* Google Login Button */}
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleLogin}
-              disabled={isSubmitting}
-              sx={{ mb: 2, py: 1.5 }}
-            >
-              Continue with Google
             </Button>
 
             {/* Links */}

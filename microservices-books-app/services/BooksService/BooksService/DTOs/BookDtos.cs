@@ -27,6 +27,8 @@ namespace BooksService.DTOs
 
         public bool IsPublic { get; set; } = false;
 
+        public BookStatus Status { get; set; } = BookStatus.Draft;
+
         public string[]? Tags { get; set; }
     }
 

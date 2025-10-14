@@ -190,6 +190,21 @@ namespace BooksService.Controllers
             }
         }
 
+        [HttpGet("genres")]
+        public async Task<ActionResult<List<string>>> GetGenres()
+        {
+            try
+            {
+                var genres = await _booksService.GetGenresAsync();
+                return Ok(genres);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting genres");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         [HttpPut("{id}")]
         [Authorize]
         public async Task<ActionResult<BookDto>> UpdateBook(Guid id, [FromBody] UpdateBookDto updateBookDto)

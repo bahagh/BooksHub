@@ -37,44 +37,48 @@ export interface GoogleAuthRequest {
 export interface Book {
   id: string;
   title: string;
-  author: string;
-  isbn?: string;
+  content: string;
+  userId: string;
   description?: string;
+  author?: string;
   genre?: string;
-  publicationYear?: number;
-  coverImageUrl?: string;
-  content?: string;
-  metadata?: Record<string, any>;
+  language?: string;
+  wordCount?: number;
+  characterCount?: number;
+  readingTimeMinutes?: number;
+  status: number | string; // Backend returns number: 0=Draft, 1=InReview, 2=Published, 3=Archived
+  isPublic: boolean;
+  viewCount?: number;
+  averageRating?: number;
+  ratingCount?: number;
+  commentCount?: number;
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
-  averageRating?: number;
-  totalRatings?: number;
-  totalComments?: number;
-  viewCount?: number;
 }
 
 export interface CreateBookRequest {
   title: string;
-  author: string;
-  isbn?: string;
+  content: string;
   description?: string;
+  author?: string;
   genre?: string;
-  publicationYear?: number;
-  coverImageUrl?: string;
-  content?: string;
-  metadata?: Record<string, any>;
+  language?: string;
+  isPublic?: boolean;
+  status?: number; // 0=Draft, 1=InReview, 2=Published, 3=Archived
+  tags?: string[];
 }
 
 export interface UpdateBookRequest {
   title?: string;
-  author?: string;
-  isbn?: string;
-  description?: string;
-  genre?: string;
-  publicationYear?: number;
-  coverImageUrl?: string;
   content?: string;
-  metadata?: Record<string, any>;
+  description?: string;
+  author?: string;
+  genre?: string;
+  language?: string;
+  isPublic?: boolean;
+  status?: number; // 0=Draft, 1=InReview, 2=Published, 3=Archived
+  tags?: string[];
 }
 
 // Rating Types
@@ -165,7 +169,7 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  items: T[];  // Backend uses 'Items' (lowercase 'items' in JSON)
   totalCount: number;
   page: number;
   pageSize: number;

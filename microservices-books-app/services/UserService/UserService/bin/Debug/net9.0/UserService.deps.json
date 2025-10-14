@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v9.0": {
       "UserService/1.0.0": {
         "dependencies": {
+          "AspNetCoreRateLimit": "5.0.0",
           "BCrypt.Net-Next": "4.0.3",
           "Google.Apis.Auth": "1.72.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.9",
@@ -19,6 +20,20 @@
         },
         "runtime": {
           "UserService.dll": {}
+        }
+      },
+      "AspNetCoreRateLimit/5.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.9",
+          "Microsoft.Extensions.Options": "9.0.9",
+          "Newtonsoft.Json": "13.0.4"
+        },
+        "runtime": {
+          "lib/net6.0/AspNetCoreRateLimit.dll": {
+            "assemblyVersion": "4.0.2.0",
+            "fileVersion": "4.0.2.0"
+          }
         }
       },
       "BCrypt.Net-Next/4.0.3": {
@@ -848,6 +863,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AspNetCoreRateLimit/5.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-6fq9+o1maGADUmpK/PvcF0DtXW2+7bSkIL7MDIo/agbIHKN8XkMQF4oze60DO731WaQmHmK260hB30FwPzCmEg==",
+      "path": "aspnetcoreratelimit/5.0.0",
+      "hashPath": "aspnetcoreratelimit.5.0.0.nupkg.sha512"
     },
     "BCrypt.Net-Next/4.0.3": {
       "type": "package",

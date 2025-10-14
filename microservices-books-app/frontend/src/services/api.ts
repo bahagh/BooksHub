@@ -1,74 +1,95 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = (window as any)?.process?.env?.REACT_APP_API_URL || 'http://localhost:5555';
+const USER_SERVICE_URL = (window as any)?.process?.env?.REACT_APP_USER_SERVICE_URL || 'http://localhost:5555';
+const BOOKS_SERVICE_URL = (window as any)?.process?.env?.REACT_APP_BOOKS_SERVICE_URL || 'http://localhost:5556';
 const API_TIMEOUT = 30000; // 30 seconds
 
-// Create axios instance
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+// Create axios instance for UserService (Auth, User management)
+const userServiceClient: AxiosInstance = axios.create({
+  baseURL: USER_SERVICE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+// Create axios instance for BooksService (Books, Ratings, Comments, Analytics)
+const booksServiceClient: AxiosInstance = axios.create({
+  baseURL: BOOKS_SERVICE_URL,
+  timeout: API_TIMEOUT,
+  headers: {
+    'Content-Type': 'application/json',
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+});
 
-// Response interceptor to handle common errors
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Log successful requests in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
-    }
-    return response;
-  },
-  async (error) => {
-    const originalRequest = error.config;
+// Legacy client for backward compatibility (defaults to UserService)
+const apiClient: AxiosInstance = userServiceClient;
 
-    // Log errors in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`❌ ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url} - ${error.response?.status || 'Network Error'}`);
-      if (error.response?.data) {
-        console.error('Error details:', error.response.data);
+// Configure interceptors for UserService
+const configureAuthInterceptors = (client: AxiosInstance) => {
+  // Request interceptor to add auth token
+  client.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
+  );
+};
 
-    // Handle network errors
-    if (!error.response) {
-      const networkError = {
-        message: 'Network connection failed. Please check your internet connection and try again.',
-        type: 'NETWORK_ERROR',
-        originalError: error.message
-      };
-      return Promise.reject(networkError);
-    }
+// Apply interceptors to both clients
+configureAuthInterceptors(userServiceClient);
+configureAuthInterceptors(booksServiceClient);
 
-    // Handle 401 errors (Unauthorized)
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+// Configure response interceptors for both clients
+const configureResponseInterceptors = (client: AxiosInstance) => {
+  client.interceptors.response.use(
+    (response: AxiosResponse) => {
+      // Log successful requests in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+      }
+      return response;
+    },
+    async (error) => {
+      const originalRequest = error.config;
 
-      try {
-        // Try to refresh the token
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          console.log('🔄 Attempting token refresh...');
-          const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-            refreshToken,
-          });
+      // Log errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`❌ ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url} - ${error.response?.status || 'Network Error'}`);
+        if (error.response?.data) {
+          console.error('Error details:', error.response.data);
+        }
+      }
+
+      // Handle network errors
+      if (!error.response) {
+        const networkError = {
+          message: 'Network connection failed. Please check your internet connection and try again.',
+          type: 'NETWORK_ERROR',
+          originalError: error.message
+        };
+        return Promise.reject(networkError);
+      }
+
+      // Handle 401 errors (Unauthorized)
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          // Try to refresh the token
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            console.log('🔄 Attempting token refresh...');
+            const response = await axios.post(`${USER_SERVICE_URL}/api/auth/refresh`, {
+              refreshToken,
+            });
 
           const newToken = response.data?.data?.token || response.data?.token;
           if (newToken) {
@@ -143,8 +164,12 @@ apiClient.interceptors.response.use(
     };
     
     return Promise.reject(genericError);
-  }
-);
+  });
+};
+
+// Apply response interceptors to both clients
+configureResponseInterceptors(userServiceClient);
+configureResponseInterceptors(booksServiceClient);
 
 // Generic API request function with enhanced error handling
 export const apiRequest = async <T>(
@@ -345,6 +370,65 @@ export const testAuth = async () => {
     console.error('Auth test failed:', error);
     throw error;
   }
+};
+
+// Books API client using BooksService
+export const booksApi = {
+  get: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await booksServiceClient({ method: 'GET', url, ...config });
+      return response.data;
+    } catch (error: any) {
+      if (error.type) throw error;
+      throw {
+        message: error.response?.data?.message || 'An error occurred',
+        type: 'API_ERROR',
+        statusCode: error.response?.status
+      };
+    }
+  },
+
+  post: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await booksServiceClient({ method: 'POST', url, data, ...config });
+      return response.data;
+    } catch (error: any) {
+      if (error.type) throw error;
+      throw {
+        message: error.response?.data?.message || 'An error occurred',
+        type: 'API_ERROR',
+        statusCode: error.response?.status
+      };
+    }
+  },
+
+  put: async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await booksServiceClient({ method: 'PUT', url, data, ...config });
+      return response.data;
+    } catch (error: any) {
+      if (error.type) throw error;
+      throw {
+        message: error.response?.data?.message || 'An error occurred',
+        type: 'API_ERROR',
+        statusCode: error.response?.status
+      };
+    }
+  },
+
+  delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+    try {
+      const response = await booksServiceClient({ method: 'DELETE', url, ...config });
+      return response.data;
+    } catch (error: any) {
+      if (error.type) throw error;
+      throw {
+        message: error.response?.data?.message || 'An error occurred',
+        type: 'API_ERROR',
+        statusCode: error.response?.status
+      };
+    }
+  },
 };
 
 export default apiClient;

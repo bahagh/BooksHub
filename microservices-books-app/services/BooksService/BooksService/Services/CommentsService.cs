@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using BooksService.Data;
 using BooksService.DTOs;
 using BooksService.Models;
+using Ganss.Xss;
 
 namespace BooksService.Services
 {
@@ -21,12 +22,25 @@ namespace BooksService.Services
         private readonly BooksDbContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<CommentsService> _logger;
+        private readonly HtmlSanitizer _htmlSanitizer;
 
         public CommentsService(BooksDbContext context, IMapper mapper, ILogger<CommentsService> logger)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            
+            // Configure HTML sanitizer to remove all dangerous tags and attributes
+            _htmlSanitizer = new HtmlSanitizer();
+            // Allow only safe HTML tags for basic formatting
+            _htmlSanitizer.AllowedTags.Clear();
+            _htmlSanitizer.AllowedTags.Add("b");
+            _htmlSanitizer.AllowedTags.Add("i");
+            _htmlSanitizer.AllowedTags.Add("u");
+            _htmlSanitizer.AllowedTags.Add("p");
+            _htmlSanitizer.AllowedTags.Add("br");
+            // Remove all attributes to prevent javascript: URLs, onclick, etc.
+            _htmlSanitizer.AllowedAttributes.Clear();
         }
 
         public async Task<CommentDto> CreateCommentAsync(Guid bookId, CreateCommentDto createCommentDto, Guid userId)
@@ -49,6 +63,9 @@ namespace BooksService.Services
             var comment = _mapper.Map<BookComment>(createCommentDto);
             comment.BookId = bookId;
             comment.UserId = userId;
+            
+            // Sanitize comment content to prevent XSS attacks
+            comment.Content = _htmlSanitizer.Sanitize(comment.Content);
 
             _context.BookComments.Add(comment);
             await _context.SaveChangesAsync();
@@ -72,6 +89,9 @@ namespace BooksService.Services
                 return null;
 
             _mapper.Map(updateCommentDto, comment);
+            
+            // Sanitize updated content to prevent XSS attacks
+            comment.Content = _htmlSanitizer.Sanitize(comment.Content);
             comment.IsEdited = true;
 
             await _context.SaveChangesAsync();

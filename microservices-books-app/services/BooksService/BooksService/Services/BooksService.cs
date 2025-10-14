@@ -19,6 +19,7 @@ namespace BooksService.Services
         Task<PaginatedResult<BookListDto>> GetPublicBooksAsync(BookSearchDto searchDto);
         Task<BookAnalyticsDto?> GetBookAnalyticsAsync(Guid bookId, Guid userId);
         Task<bool> IncrementViewCountAsync(Guid bookId, Guid? userId = null);
+        Task<List<string>> GetGenresAsync();
     }
 
     public class BooksService : IBooksService
@@ -380,6 +381,22 @@ namespace BooksService.Services
             return sortOrder.ToLower() == "asc" 
                 ? query.OrderBy(sortExpression)
                 : query.OrderByDescending(sortExpression);
+        }
+
+        public async Task<List<string>> GetGenresAsync()
+        {
+            _logger.LogInformation("Getting all distinct genres");
+
+            var genres = await _context.Books
+                .Where(b => !string.IsNullOrWhiteSpace(b.Genre))
+                .Where(b => b.IsPublic && b.Status == BookStatus.Published)
+                .Select(b => b.Genre!)
+                .Distinct()
+                .OrderBy(g => g)
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} genres", genres.Count);
+            return genres;
         }
 
         private static int CountWords(string content)

@@ -16,8 +16,12 @@ import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
 import BooksPage from './pages/Books/BooksPage';
 import BookDetailsPage from './pages/Books/BookDetailsPage';
+import { CreateBookPage } from './pages/Books/CreateBookPage';
+import { EditBookPage } from './pages/Books/EditBookPage';
+import { MyBooksPage } from './pages/Books/MyBooksPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext';
@@ -109,6 +113,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/books/create"
+                  element={
+                    <ProtectedRoute>
+                      <CreateBookPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/books/:id"
                   element={
                     <ProtectedRoute>
@@ -117,10 +129,34 @@ function App() {
                   }
                 />
                 <Route
+                  path="/books/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <EditBookPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/my-books"
+                  element={
+                    <ProtectedRoute>
+                      <MyBooksPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/profile"
                   element={
                     <ProtectedRoute>
                       <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <SettingsPage />
                     </ProtectedRoute>
                   }
                 />

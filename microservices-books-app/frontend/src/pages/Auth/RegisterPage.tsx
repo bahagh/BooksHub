@@ -12,9 +12,7 @@ import {
   Grid,
   FormControlLabel,
   Checkbox,
-  Divider,
 } from '@mui/material';
-import { Google as GoogleIcon } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -105,10 +103,7 @@ const RegisterPage: React.FC = () => {
     },
   });
 
-  const handleGoogleSignup = async () => {
-    // TODO: Implement Google OAuth
-    setError('Google signup not implemented yet');
-  };
+
 
   if (isLoading) {
     return (
@@ -332,25 +327,6 @@ const RegisterPage: React.FC = () => {
             </Button>
 
             {/* Divider */}
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                or
-              </Typography>
-            </Divider>
-
-            {/* Google Signup Button */}
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleSignup}
-              disabled={isSubmitting}
-              sx={{ mb: 2, py: 1.5 }}
-            >
-              Sign up with Google
-            </Button>
-
             {/* Link to Login */}
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
