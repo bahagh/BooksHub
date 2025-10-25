@@ -27,7 +27,6 @@ import {
   Palette as PaletteIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 const SettingsPage: React.FC = () => {
