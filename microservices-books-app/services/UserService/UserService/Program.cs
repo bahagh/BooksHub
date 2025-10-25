@@ -45,8 +45,13 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Database - Always use PostgreSQL
+// Try multiple environment variable formats for Railway compatibility
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? builder.Configuration["DATABASE_URL"]
+    ?? throw new InvalidOperationException("Database connection string not configured");
+
 builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
