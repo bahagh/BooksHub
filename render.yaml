@@ -1,0 +1,98 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: books-postgres
+    env: docker
+    plan: free
+    region: oregon
+    envVars:
+      - key: POSTGRES_DB
+        value: books
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+
+  # UserService
+  - type: web
+    name: books-userservice
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./microservices-books-app/services/UserService/UserService/Dockerfile
+    dockerContext: ./microservices-books-app/services/UserService
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5555
+      - key: ConnectionStrings__DefaultConnection
+        fromService:
+          type: pserv
+          name: books-postgres
+          property: connectionString
+      - key: JWT__Key
+        generateValue: true
+      - key: JWT__Issuer
+        value: UserService
+      - key: JWT__Audience
+        value: BooksApp
+    healthCheckPath: /api/auth/health
+
+  # BooksService
+  - type: web
+    name: books-booksservice
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./microservices-books-app/services/BooksService/BooksService/Dockerfile
+    dockerContext: ./microservices-books-app/services/BooksService
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5556
+      - key: ConnectionStrings__DefaultConnection
+        fromService:
+          type: pserv
+          name: books-postgres
+          property: connectionString
+      - key: UserServiceUrl
+        fromService:
+          type: web
+          name: books-userservice
+          property: host
+    healthCheckPath: /api/books/health
+
+  # API Gateway
+  - type: web
+    name: books-apigateway
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./microservices-books-app/api-gateway/ApiGateway/Dockerfile
+    dockerContext: ./microservices-books-app/api-gateway
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5000
+
+  # Frontend
+  - type: web
+    name: books-frontend
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./microservices-books-app/frontend/Dockerfile
+    dockerContext: ./microservices-books-app/frontend
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: books-apigateway
+          property: host

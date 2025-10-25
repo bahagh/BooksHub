@@ -1,0 +1,50 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.vs/
+.vscode/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Build outputs
+build/
+dist/
+out/
+publish/
+
+# Database
+*.db
+*.sqlite
+*.mdf
+*.ldf
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+*.cover
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml

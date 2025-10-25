@@ -2,6 +2,12 @@
 
 A full-stack microservices application for managing books, personal libraries, ratings, and comments with real-time notifications.
 
+## 🌐 Live Demo
+
+> Deploy your own instance for **FREE** using Railway.app - see [DEPLOYMENT.md](DEPLOYMENT.md)
+
+---
+
 ## Tech Stack
 
 **Backend:**
@@ -29,7 +35,7 @@ A full-stack microservices application for managing books, personal libraries, r
 ### Prerequisites
 - Docker & Docker Compose
 
-### Run with Docker
+### Run Locally with Docker
 
 1. Clone the repository:
 ```bash
@@ -61,6 +67,24 @@ docker compose up -d
 ```bash
 docker compose down
 ```
+
+## 🚀 Deploy to Web (FREE - 10 Minutes)
+
+Deploy this application to the internet for **free** using Railway.app:
+
+### Quick Deploy Steps:
+1. **Fork this repository** (if you haven't already)
+2. **Sign up** at [railway.app](https://railway.app) with GitHub (no credit card needed)
+3. **Create new project** from your GitHub repo
+4. **Add PostgreSQL** database
+5. **Deploy 4 services** (UserService, BooksService, API Gateway, Frontend)
+6. **Generate public domains** for each service
+7. **Update CORS settings** in code with your Railway URLs
+8. **Share your URL** - `https://your-app.up.railway.app`
+
+**📖 Detailed guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
+
+**Monthly cost**: $0 (stays within $5 free credit)
 
 ## Features
 
@@ -193,12 +217,27 @@ dotnet test
 ## CI/CD
 
 GitHub Actions pipeline configured in `.github/workflows/ci-cd.yml`:
-- Builds all .NET services
-- Runs unit tests
-- Builds React frontend
-- Creates Docker images
+- ✅ Runs on **every push** to master/main/develop
+- ✅ Builds all .NET services
+- ✅ Runs unit tests
+- ✅ Builds React frontend  
+- ✅ Creates Docker images
+- ✅ Pushes to GitHub Container Registry
 
-Triggers: Push to `main`/`develop`, pull requests to `main`
+**Deployment**: Railway.app auto-deploys when you push to GitHub. See [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Deployment
+
+**Platform**: Railway.app (Free Tier)
+
+- **Cost**: $0/month (within $5 free credit)
+- **Setup**: ~10 minutes
+- **Always Online**: No cold starts
+- **Auto Deploy**: Push to GitHub = instant deployment
+- **Public URL**: Share with anyone
+- **Free SSL**: Automatic HTTPS
+
+**📖 Complete deployment guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## License
 
