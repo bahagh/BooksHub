@@ -12,6 +12,9 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  FormControlLabel,
+  Checkbox,
+  Chip,
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
@@ -40,6 +43,9 @@ export const BookComments: React.FC<BookCommentsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+  // NEW: Anonymous comment state
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [anonymousUsername, setAnonymousUsername] = useState('');
 
   useEffect(() => {
     loadComments();
@@ -64,17 +70,32 @@ export const BookComments: React.FC<BookCommentsProps> = ({
   };
 
   const handleSubmitComment = async () => {
-    if (!user || !newComment.trim()) return;
+    // Validate: either authenticated or anonymous with username
+    if (!newComment.trim()) return;
+    
+    if (isAnonymous && !anonymousUsername.trim()) {
+      setError('Please enter an anonymous username');
+      return;
+    }
+    
+    if (!isAnonymous && !user) {
+      setError('Please log in to post non-anonymous comments');
+      return;
+    }
 
     try {
       setSubmitting(true);
       setError(null);
 
       await booksService.createComment(bookId, {
-        content: newComment.trim()
+        content: newComment.trim(),
+        isAnonymous: isAnonymous,
+        anonymousUsername: isAnonymous ? anonymousUsername.trim() : undefined
       });
 
       setNewComment('');
+      setAnonymousUsername('');
+      setIsAnonymous(false);
       await loadComments();
     } catch (err: any) {
       console.error('Failed to submit comment:', err);
@@ -183,34 +204,69 @@ export const BookComments: React.FC<BookCommentsProps> = ({
       )}
 
       {/* Add Comment Form */}
-      {user ? (
-        <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
+          placeholder="Write a comment..."
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          disabled={submitting}
+          sx={{ mb: 1 }}
+        />
+        
+        {/* Anonymous Checkbox */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={isAnonymous}
+              onChange={(e) => {
+                setIsAnonymous(e.target.checked);
+                if (!e.target.checked) {
+                  setAnonymousUsername('');
+                }
+              }}
+              disabled={submitting}
+            />
+          }
+          label="Post anonymously"
+          sx={{ mb: isAnonymous ? 1 : 0 }}
+        />
+        
+        {/* Anonymous Username Field */}
+        {isAnonymous && (
           <TextField
             fullWidth
-            multiline
-            rows={3}
-            placeholder="Write a comment..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            label="Anonymous Username"
+            placeholder="Choose a display name"
+            value={anonymousUsername}
+            onChange={(e) => setAnonymousUsername(e.target.value)}
             disabled={submitting}
+            required
+            inputProps={{ maxLength: 50 }}
+            helperText={`${anonymousUsername.length}/50 characters`}
             sx={{ mb: 1 }}
           />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              endIcon={<SendIcon />}
-              onClick={handleSubmitComment}
-              disabled={submitting || !newComment.trim()}
-            >
-              {submitting ? 'Posting...' : 'Post Comment'}
-            </Button>
-          </Box>
+        )}
+        
+        {!user && !isAnonymous && (
+          <Alert severity="info" sx={{ mb: 1 }}>
+            Please log in to post non-anonymous comments, or check "Post anonymously"
+          </Alert>
+        )}
+        
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            endIcon={<SendIcon />}
+            onClick={handleSubmitComment}
+            disabled={submitting || !newComment.trim() || (isAnonymous && !anonymousUsername.trim()) || (!isAnonymous && !user)}
+          >
+            {submitting ? 'Posting...' : 'Post Comment'}
+          </Button>
         </Box>
-      ) : (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Please log in to comment
-        </Alert>
-      )}
+      </Box>
 
       <Divider sx={{ mb: 2 }} />
 
@@ -224,23 +280,37 @@ export const BookComments: React.FC<BookCommentsProps> = ({
           {comments.map((comment) => (
             <Box key={comment.id} sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  {comment.user?.firstName?.charAt(0).toUpperCase() || 'U'}
+                <Avatar sx={{ bgcolor: comment.isAnonymous ? 'grey.500' : 'primary.main' }}>
+                  {comment.isAnonymous 
+                    ? comment.anonymousUsername?.charAt(0).toUpperCase() || 'A'
+                    : comment.user?.firstName?.charAt(0).toUpperCase() || 'U'
+                  }
                 </Avatar>
 
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="subtitle2">
-                        {comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : 'Anonymous'}
+                        {comment.isAnonymous 
+                          ? (comment.anonymousUsername || comment.username || 'Anonymous')
+                          : (comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : comment.username || 'User')
+                        }
                       </Typography>
+                      {comment.isAnonymous && (
+                        <Chip 
+                          label="Anonymous" 
+                          size="small" 
+                          sx={{ height: 20, fontSize: '0.7rem' }}
+                          color="default"
+                        />
+                      )}
                       <Typography variant="caption" color="text.secondary">
-                        {formatDate(comment.createdAt)}
-                        {comment.updatedAt !== comment.createdAt && ' (edited)'}
+                        • {formatDate(comment.createdAt)}
+                        {comment.isEdited && ' (edited)'}
                       </Typography>
                     </Box>
 
-                    {user?.id === comment.userId && (
+                    {user?.id === comment.userId && !comment.isAnonymous && (
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, comment.id)}

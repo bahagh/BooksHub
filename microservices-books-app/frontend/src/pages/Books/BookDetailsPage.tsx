@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -30,8 +31,11 @@ import {
   Person as PersonIcon,
   Language as LanguageIcon,
   Category as CategoryIcon,
+  BookmarkAdd as BookmarkAddIcon,
+  BookmarkAdded as BookmarkAddedIcon,
 } from '@mui/icons-material';
 import { booksService } from '../../services/booksService';
+import { libraryService } from '../../services/libraryService';
 import { Book } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import ErrorDisplay from '../../components/ErrorDisplay';
@@ -47,9 +51,19 @@ const BookDetailsPage: React.FC = () => {
   const [error, setError] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const viewCountedRef = React.useRef(false);  // Track if view has been counted
+  
+  // Library state
+  const [isInLibrary, setIsInLibrary] = useState(false);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
+    // Reset view tracking when book ID changes
+    viewCountedRef.current = false;
     loadBook();
+    checkLibraryStatus();
   }, [id]);
 
   const loadBook = async () => {
@@ -98,6 +112,57 @@ const BookDetailsPage: React.FC = () => {
 
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
+  };
+
+  const checkLibraryStatus = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const status = await libraryService.isInLibrary(id);
+      setIsInLibrary(status);
+    } catch (err) {
+      console.error('Failed to check library status:', err);
+    }
+  };
+
+  const handleAddToLibrary = async () => {
+    if (!id) return;
+
+    try {
+      setLibraryLoading(true);
+      await libraryService.addToLibrary(id);
+      setIsInLibrary(true);
+      setSnackbarMessage('Book added to your library!');
+      setSnackbarOpen(true);
+    } catch (err: any) {
+      console.error('Failed to add to library:', err);
+      setSnackbarMessage(err.response?.data?.message || 'Failed to add book to library');
+      setSnackbarOpen(true);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const handleRemoveFromLibrary = async () => {
+    if (!id) return;
+
+    try {
+      setLibraryLoading(true);
+      await libraryService.removeFromLibrary(id);
+      setIsInLibrary(false);
+      setSnackbarMessage('Book removed from your library');
+      setSnackbarOpen(true);
+    } catch (err: any) {
+      console.error('Failed to remove from library:', err);
+      setSnackbarMessage(err.response?.data?.message || 'Failed to remove book from library');
+      setSnackbarOpen(true);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -202,6 +267,8 @@ const BookDetailsPage: React.FC = () => {
           >
             Back to Books
           </Button>
+          
+          {/* Owner Actions */}
           {isOwner && (
             <Box>
               <Button
@@ -220,6 +287,33 @@ const BookDetailsPage: React.FC = () => {
               >
                 Delete
               </Button>
+            </Box>
+          )}
+          
+          {/* Non-Owner Actions (Library Button) */}
+          {!isOwner && user && book.isPublic && (
+            <Box>
+              {isInLibrary ? (
+                <Button
+                  startIcon={<BookmarkAddedIcon />}
+                  onClick={handleRemoveFromLibrary}
+                  variant="outlined"
+                  color="success"
+                  disabled={libraryLoading}
+                >
+                  {libraryLoading ? 'Removing...' : 'In Library'}
+                </Button>
+              ) : (
+                <Button
+                  startIcon={<BookmarkAddIcon />}
+                  onClick={handleAddToLibrary}
+                  variant="contained"
+                  color="primary"
+                  disabled={libraryLoading}
+                >
+                  {libraryLoading ? 'Adding...' : 'Add to Library'}
+                </Button>
+              )}
             </Box>
           )}
         </Box>
@@ -433,6 +527,15 @@ const BookDetailsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Library Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Container>
   );
 };

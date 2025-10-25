@@ -3,11 +3,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+
+// Config
+import { GOOGLE_CLIENT_ID } from './config/google';
 
 // Page Components
 import LoginPage from './pages/Auth/LoginPage';
@@ -19,12 +23,15 @@ import BookDetailsPage from './pages/Books/BookDetailsPage';
 import { CreateBookPage } from './pages/Books/CreateBookPage';
 import { EditBookPage } from './pages/Books/EditBookPage';
 import { MyBooksPage } from './pages/Books/MyBooksPage';
+import MyLibraryPage from './pages/Library/MyLibraryPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import SettingsPage from './pages/Settings/SettingsPage';
+import NotificationList from './pages/Notifications/NotificationList';
 
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -82,13 +89,15 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider>
-          <Router>
-            <Layout>
-              <Routes>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AuthProvider>
+            <NotificationProvider>
+              <Router>
+              <Layout>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
@@ -145,6 +154,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/library"
+                  element={
+                    <ProtectedRoute>
+                      <MyLibraryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/profile"
                   element={
                     <ProtectedRoute>
@@ -160,6 +177,14 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <NotificationList />
+                    </ProtectedRoute>
+                  }
+                />
                 
                 {/* Default Route */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -168,11 +193,12 @@ function App() {
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
-      {/* TODO: Add React Query DevTools when compatible version is installed */}
-    </QueryClientProvider>
+              </Router>
+            </NotificationProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
 

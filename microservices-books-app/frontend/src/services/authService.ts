@@ -1,4 +1,5 @@
 import { api, handleApiError } from './api';
+import { createAppError } from '../utils/errors';
 import {
   User,
   LoginRequest,
@@ -16,17 +17,11 @@ class AuthService {
     try {
       // Validate input
       if (!credentials.email || !credentials.password) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Email and password are required'
-        };
+        throw createAppError('Email and password are required', 'VALIDATION_ERROR');
       }
 
       if (!/\S+@\S+\.\S+/.test(credentials.email)) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Please enter a valid email address'
-        };
+        throw createAppError('Please enter a valid email address', 'VALIDATION_ERROR');
       }
 
       const response = await api.post<ApiResponse<AuthResponse>>(
@@ -42,27 +37,21 @@ class AuthService {
       
       return response.data;
     } catch (error: any) {
-      console.error('❌ Login error:', error);
+      // Handle validation/auth errors (400)
+      if (error.status === 400) {
+        throw createAppError(error.message || 'Invalid email or password', 'AUTH_ERROR', error.status);
+      }
       
       // Handle specific error cases
       if (error.status === 401) {
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'Invalid email or password'
-        };
+        throw createAppError('Invalid email or password', 'AUTH_ERROR', error.status);
       }
       
       if (error.status === 429) {
-        throw {
-          type: 'RATE_LIMIT_ERROR',
-          message: 'Too many login attempts. Please try again later.'
-        };
+        throw createAppError('Too many login attempts. Please try again later.', 'RATE_LIMIT_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'LOGIN_ERROR',
-        message: handleApiError(error, 'Login failed. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Login failed. Please try again.'), error.type || 'LOGIN_ERROR');
     }
   }
 
@@ -71,24 +60,15 @@ class AuthService {
     try {
       // Validate input
       if (!userData.email || !userData.password) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Email and password are required'
-        };
+        throw createAppError('Email and password are required', 'VALIDATION_ERROR');
       }
 
       if (!/\S+@\S+\.\S+/.test(userData.email)) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Please enter a valid email address'
-        };
+        throw createAppError('Please enter a valid email address', 'VALIDATION_ERROR');
       }
 
       if (userData.password.length < 6) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Password must be at least 6 characters long'
-        };
+        throw createAppError('Password must be at least 6 characters long', 'VALIDATION_ERROR');
       }
 
       const response = await api.post<ApiResponse<AuthResponse>>(
@@ -108,23 +88,14 @@ class AuthService {
       
       // Handle specific error cases
       if (error.status === 409) {
-        throw {
-          type: 'CONFLICT_ERROR',
-          message: 'An account with this email already exists'
-        };
+        throw createAppError('An account with this email already exists', 'CONFLICT_ERROR', error.status);
       }
       
       if (error.status === 400) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: handleApiError(error, 'Invalid registration data')
-        };
+        throw createAppError(handleApiError(error, 'Invalid registration data'), 'VALIDATION_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'REGISTRATION_ERROR',
-        message: handleApiError(error, 'Registration failed. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Registration failed. Please try again.'), error.type || 'REGISTRATION_ERROR');
     }
   }
 
@@ -145,10 +116,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       console.error('❌ Google login error:', error);
-      throw {
-        type: error.type || 'GOOGLE_LOGIN_ERROR',
-        message: handleApiError(error, 'Google login failed. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Google login failed. Please try again.'), error.type || 'GOOGLE_LOGIN_ERROR');
     }
   }
 
@@ -157,10 +125,7 @@ class AuthService {
     try {
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'No refresh token available'
-        };
+        throw createAppError('No refresh token available', 'AUTH_ERROR');
       }
 
       const response = await api.post<ApiResponse<AuthResponse>>(
@@ -178,10 +143,7 @@ class AuthService {
     } catch (error: any) {
       console.error('❌ Token refresh error:', error);
       this.clearAuthData(); // Clear invalid tokens
-      throw {
-        type: error.type || 'TOKEN_REFRESH_ERROR',
-        message: handleApiError(error, 'Session expired. Please log in again.')
-      };
+      throw createAppError(handleApiError(error, 'Session expired. Please log in again.'), error.type || 'TOKEN_REFRESH_ERROR');
     }
   }
 
@@ -211,16 +173,10 @@ class AuthService {
       
       if (error.status === 401) {
         this.clearAuthData();
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'Session expired. Please log in again.'
-        };
+        throw createAppError('Session expired. Please log in again.', 'AUTH_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'USER_ERROR',
-        message: handleApiError(error, 'Failed to get user information')
-      };
+      throw createAppError(handleApiError(error, 'Failed to get user information'), error.type || 'USER_ERROR');
     }
   }
 
@@ -243,10 +199,7 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       console.error('❌ Update profile error:', error);
-      throw {
-        type: error.type || 'PROFILE_UPDATE_ERROR',
-        message: handleApiError(error, 'Failed to update profile')
-      };
+      throw createAppError(handleApiError(error, 'Failed to update profile'), error.type || 'PROFILE_UPDATE_ERROR');
     }
   }
 
@@ -370,20 +323,14 @@ class AuthService {
   async forgotPassword(email: string): Promise<void> {
     try {
       if (!email || !/\S+@\S+\.\S+/.test(email)) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Please enter a valid email address'
-        };
+        throw createAppError('Please enter a valid email address', 'VALIDATION_ERROR');
       }
 
       await api.post<ApiResponse<any>>(`${this.BASE_URL}/forgot-password`, { email });
       console.log('✅ Password reset email sent');
     } catch (error: any) {
       console.error('❌ Forgot password error:', error);
-      throw {
-        type: error.type || 'FORGOT_PASSWORD_ERROR',
-        message: handleApiError(error, 'Failed to send password reset email')
-      };
+      throw createAppError(handleApiError(error, 'Failed to send password reset email'), error.type || 'FORGOT_PASSWORD_ERROR');
     }
   }
 
@@ -396,24 +343,15 @@ class AuthService {
   ): Promise<void> {
     try {
       if (!token || !email || !newPassword || !confirmPassword) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'All fields are required'
-        };
+        throw createAppError('All fields are required', 'VALIDATION_ERROR');
       }
 
       if (newPassword !== confirmPassword) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Passwords do not match'
-        };
+        throw createAppError('Passwords do not match', 'VALIDATION_ERROR');
       }
 
       if (newPassword.length < 8) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Password must be at least 8 characters long'
-        };
+        throw createAppError('Password must be at least 8 characters long', 'VALIDATION_ERROR');
       }
 
       await api.post<ApiResponse<any>>(`${this.BASE_URL}/reset-password`, {
@@ -427,16 +365,10 @@ class AuthService {
       console.error('❌ Reset password error:', error);
       
       if (error.status === 400) {
-        throw {
-          type: 'INVALID_TOKEN_ERROR',
-          message: 'Invalid or expired reset token. Please request a new one.'
-        };
+        throw createAppError('Invalid or expired reset token. Please request a new one.', 'INVALID_TOKEN_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'RESET_PASSWORD_ERROR',
-        message: handleApiError(error, 'Failed to reset password')
-      };
+      throw createAppError(handleApiError(error, 'Failed to reset password'), error.type || 'RESET_PASSWORD_ERROR');
     }
   }
 
@@ -448,31 +380,19 @@ class AuthService {
   ): Promise<void> {
     try {
       if (!currentPassword || !newPassword || !confirmPassword) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'All fields are required'
-        };
+        throw createAppError('All fields are required', 'VALIDATION_ERROR');
       }
 
       if (newPassword !== confirmPassword) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'New passwords do not match'
-        };
+        throw createAppError('New passwords do not match', 'VALIDATION_ERROR');
       }
 
       if (newPassword.length < 8) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Password must be at least 8 characters long'
-        };
+        throw createAppError('Password must be at least 8 characters long', 'VALIDATION_ERROR');
       }
 
       if (currentPassword === newPassword) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'New password must be different from current password'
-        };
+        throw createAppError('New password must be different from current password', 'VALIDATION_ERROR');
       }
 
       await api.post<ApiResponse<any>>(`${this.BASE_URL}/change-password`, {
@@ -485,16 +405,10 @@ class AuthService {
       console.error('❌ Change password error:', error);
       
       if (error.status === 400) {
-        throw {
-          type: 'INVALID_PASSWORD_ERROR',
-          message: 'Current password is incorrect'
-        };
+        throw createAppError('Current password is incorrect', 'INVALID_PASSWORD_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'CHANGE_PASSWORD_ERROR',
-        message: handleApiError(error, 'Failed to change password')
-      };
+      throw createAppError(handleApiError(error, 'Failed to change password'), error.type || 'CHANGE_PASSWORD_ERROR');
     }
   }
 }

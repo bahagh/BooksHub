@@ -9,6 +9,8 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { Star as StarIcon } from '@mui/icons-material';
 import { booksService } from '../../services/booksService';
@@ -36,6 +38,9 @@ export const BookRating: React.FC<BookRatingProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  // NEW: Anonymous rating state
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [anonymousUsername, setAnonymousUsername] = useState('');
 
   useEffect(() => {
     loadUserRating();
@@ -69,28 +74,43 @@ export const BookRating: React.FC<BookRatingProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!user || userRating === null) return;
+    if (userRating === null) return;
+    
+    // Validate: either authenticated or anonymous with username
+    if (isAnonymous && !anonymousUsername.trim()) {
+      setError('Please enter an anonymous username');
+      return;
+    }
+    
+    if (!isAnonymous && !user) {
+      setError('Please log in to post non-anonymous ratings');
+      return;
+    }
 
     try {
       setSubmitting(true);
       setError(null);
 
       if (existingRatingId) {
-        // Update existing rating
+        // Update existing rating (only for authenticated users)
         await booksService.updateRating(bookId, existingRatingId, {
           rating: userRating,
           review: userReview.trim() || undefined
         });
       } else {
-        // Create new rating
+        // Create new rating (supports anonymous)
         await booksService.createRating(bookId, {
           rating: userRating,
-          review: userReview.trim() || undefined
+          review: userReview.trim() || undefined,
+          isAnonymous: isAnonymous,
+          anonymousUsername: isAnonymous ? anonymousUsername.trim() : undefined
         });
       }
 
       setSuccess(true);
       setShowReviewForm(false);
+      setAnonymousUsername('');
+      setIsAnonymous(false);
       setTimeout(() => setSuccess(false), 3000);
 
       // Refresh user rating and notify parent
@@ -205,11 +225,51 @@ export const BookRating: React.FC<BookRatingProps> = ({
                 sx={{ mb: 2 }}
               />
 
+              {/* Anonymous Checkbox */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isAnonymous}
+                    onChange={(e) => {
+                      setIsAnonymous(e.target.checked);
+                      if (!e.target.checked) {
+                        setAnonymousUsername('');
+                      }
+                    }}
+                    disabled={submitting || !!existingRatingId}
+                  />
+                }
+                label="Post anonymously"
+                sx={{ mb: isAnonymous ? 1 : 0 }}
+              />
+
+              {/* Anonymous Username Field */}
+              {isAnonymous && (
+                <TextField
+                  fullWidth
+                  label="Anonymous Username"
+                  placeholder="Choose a display name"
+                  value={anonymousUsername}
+                  onChange={(e) => setAnonymousUsername(e.target.value)}
+                  disabled={submitting}
+                  required
+                  inputProps={{ maxLength: 50 }}
+                  helperText={`${anonymousUsername.length}/50 characters`}
+                  sx={{ mb: 2 }}
+                />
+              )}
+
+              {!user && !isAnonymous && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Please log in to post non-anonymous ratings, or check "Post anonymously"
+                </Alert>
+              )}
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
                   onClick={handleSubmit}
-                  disabled={submitting || userRating === null}
+                  disabled={submitting || userRating === null || (isAnonymous && !anonymousUsername.trim()) || (!isAnonymous && !user)}
                 >
                   {submitting ? (
                     <>
@@ -226,6 +286,8 @@ export const BookRating: React.FC<BookRatingProps> = ({
                   variant="outlined"
                   onClick={() => {
                     setShowReviewForm(false);
+                    setAnonymousUsername('');
+                    setIsAnonymous(false);
                     loadUserRating();
                   }}
                   disabled={submitting}

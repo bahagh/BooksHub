@@ -144,6 +144,23 @@ builder.Services.AddScoped<IBooksService, BooksService.Services.BooksService>();
 builder.Services.AddScoped<IRatingsService, RatingsService>();
 builder.Services.AddScoped<ICommentsService, CommentsService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<INotificationClient, NotificationClient>();
+
+// HttpClient for UserService (for notifications)
+builder.Services.AddHttpClient("UserService", client =>
+{
+    var userServiceUrl = builder.Configuration.GetValue<string>("UserServiceUrl") ?? "http://localhost:5555";
+    client.BaseAddress = new Uri(userServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// HttpClient for UserClient (for fetching user info)
+builder.Services.AddHttpClient<IUserClient, UserClient>((serviceProvider, client) =>
+{
+    var userServiceUrl = builder.Configuration.GetValue<string>("UserServiceUrl") ?? "http://localhost:5555";
+    client.BaseAddress = new Uri(userServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // CORS
 builder.Services.AddCors(options =>
@@ -178,13 +195,14 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<BooksDbContext>();
-        context.Database.EnsureCreated(); // More tolerant than Migrate()
-        Log.Information("Database initialized successfully");
+        context.Database.Migrate(); // Apply migrations with proper table casing
+        Log.Information("Database migrations applied successfully");
     }
 }
 catch (Exception ex)
 {
-    Log.Warning(ex, "Database initialization failed, continuing without database");
+    Log.Error(ex, "Database migration failed - this will cause errors!");
+    throw; // Don't continue without database
 }
 
 app.UseSerilogRequestLogging();

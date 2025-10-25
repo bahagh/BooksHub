@@ -20,6 +20,8 @@ namespace BooksService.Services
         Task<BookAnalyticsDto?> GetBookAnalyticsAsync(Guid bookId, Guid userId);
         Task<bool> IncrementViewCountAsync(Guid bookId, Guid? userId = null);
         Task<List<string>> GetGenresAsync();
+        Task<List<BookListDto>> GetPopularBooksAsync(int limit);
+        Task<List<BookListDto>> GetRecentBooksAsync(int limit);
     }
 
     public class BooksService : IBooksService
@@ -27,12 +29,21 @@ namespace BooksService.Services
         private readonly BooksDbContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<BooksService> _logger;
+        private readonly IUserClient _userClient;
+        private readonly INotificationClient _notificationClient;
 
-        public BooksService(BooksDbContext context, IMapper mapper, ILogger<BooksService> logger)
+        public BooksService(
+            BooksDbContext context, 
+            IMapper mapper, 
+            ILogger<BooksService> logger,
+            IUserClient userClient,
+            INotificationClient notificationClient)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            _userClient = userClient;
+            _notificationClient = notificationClient;
         }
 
         public async Task<BookDto> CreateBookAsync(CreateBookDto createBookDto, Guid userId)
@@ -53,7 +64,9 @@ namespace BooksService.Services
 
         public async Task<BookDto?> GetBookByIdAsync(Guid id, Guid? userId = null)
         {
-            var query = _context.Books.AsQueryable();
+            var query = _context.Books
+                .Include(b => b.Comments)  // Include comments for count
+                .AsQueryable();
 
             if (userId.HasValue)
             {
@@ -78,7 +91,9 @@ namespace BooksService.Services
 
         public async Task<PaginatedResult<BookListDto>> GetBooksAsync(BookSearchDto searchDto, Guid? userId = null)
         {
-            var query = _context.Books.AsQueryable();
+            var query = _context.Books
+                .Include(b => b.Comments)  // Include comments for count
+                .AsQueryable();
 
             // Apply security filters
             if (userId.HasValue)
@@ -285,21 +300,55 @@ namespace BooksService.Services
                 return false;
             }
 
-            book.ViewCount++;
-
+            // Check if user has viewed this book in the last hour (to prevent double-counting)
+            bool shouldIncrement = true;
+            bool isNewView = false;
             if (userId.HasValue)
             {
-                var bookView = new BookView
-                {
-                    BookId = bookId,
-                    UserId = userId.Value,
-                    ViewedAt = DateTime.UtcNow
-                };
+                var recentView = await _context.BookViews
+                    .Where(v => v.BookId == bookId && v.UserId == userId.Value)
+                    .OrderByDescending(v => v.ViewedAt)
+                    .FirstOrDefaultAsync();
 
-                _context.BookViews.Add(bookView);
+                // Only increment if no recent view or last view was over 1 hour ago
+                if (recentView != null && (DateTime.UtcNow - recentView.ViewedAt).TotalHours < 1)
+                {
+                    shouldIncrement = false;
+                }
+                else
+                {
+                    // Add new view record
+                    var bookView = new BookView
+                    {
+                        BookId = bookId,
+                        UserId = userId.Value,
+                        ViewedAt = DateTime.UtcNow
+                    };
+                    _context.BookViews.Add(bookView);
+                    isNewView = true;
+                }
+            }
+
+            if (shouldIncrement)
+            {
+                book.ViewCount++;
             }
 
             await _context.SaveChangesAsync();
+
+            // Notify book creator about view (only if viewing someone else's book and it's a new view)
+            if (isNewView && book.UserId != userId && userId.HasValue)
+            {
+                var userInfo = await _userClient.GetUserInfoAsync(userId.Value);
+                var viewerName = userInfo?.FullName ?? "A user";
+                
+                _ = _notificationClient.NotifyBookViewAsync(
+                    book.UserId,
+                    viewerName,
+                    book.Title,
+                    bookId.ToString());
+            }
+
             return true;
         }
 
@@ -440,6 +489,98 @@ namespace BooksService.Services
                 "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out", "day", "get", "has", "him", "his", "how", "man", "new", "now", "old", "see", "two", "way", "who", "boy", "did", "its", "let", "put", "say", "she", "too", "use"
             };
             return stopWords.Contains(word);
+        }
+
+        public async Task<List<BookListDto>> GetPopularBooksAsync(int limit)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching popular books with limit {Limit}", limit);
+
+                var books = await _context.Books
+                    .Where(b => b.IsPublic && b.Status == BookStatus.Published)
+                    .OrderByDescending(b => b.ViewCount)
+                    .ThenByDescending(b => b.AverageRating)
+                    .ThenByDescending(b => b.RatingCount)
+                    .Take(limit)
+                    .ToListAsync();
+
+                var bookDtos = books.Select(b => new BookListDto
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    UserId = b.UserId,
+                    Description = b.Description,
+                    Author = b.Author,
+                    Genre = b.Genre,
+                    WordCount = b.WordCount,
+                    EstimatedReadingTime = b.ReadingTimeMinutes > 0 ? $"{b.ReadingTimeMinutes:F0} min" : "N/A",
+                    Status = b.Status,
+                    IsPublic = b.IsPublic,
+                    ViewCount = b.ViewCount,
+                    AverageRating = b.AverageRating,
+                    RatingCount = b.RatingCount,
+                    CommentCount = 0, // Will be calculated if needed
+                    Tags = string.IsNullOrEmpty(b.Tags) ? null : System.Text.Json.JsonSerializer.Deserialize<string[]>(b.Tags),
+                    CreatedAt = b.CreatedAt,
+                    PublishedAt = b.PublishedAt,
+                    IsPublished = b.IsPublished
+                }).ToList();
+
+                _logger.LogInformation("Fetched {Count} popular books", bookDtos.Count);
+                
+                return bookDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching popular books");
+                throw;
+            }
+        }
+
+        public async Task<List<BookListDto>> GetRecentBooksAsync(int limit)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching recent books with limit {Limit}", limit);
+
+                var books = await _context.Books
+                    .Where(b => b.IsPublic && b.Status == BookStatus.Published)
+                    .OrderByDescending(b => b.PublishedAt ?? b.CreatedAt)
+                    .Take(limit)
+                    .ToListAsync();
+
+                var bookDtos = books.Select(b => new BookListDto
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    UserId = b.UserId,
+                    Description = b.Description,
+                    Author = b.Author,
+                    Genre = b.Genre,
+                    WordCount = b.WordCount,
+                    EstimatedReadingTime = b.ReadingTimeMinutes > 0 ? $"{b.ReadingTimeMinutes:F0} min" : "N/A",
+                    Status = b.Status,
+                    IsPublic = b.IsPublic,
+                    ViewCount = b.ViewCount,
+                    AverageRating = b.AverageRating,
+                    RatingCount = b.RatingCount,
+                    CommentCount = 0, // Will be calculated if needed
+                    Tags = string.IsNullOrEmpty(b.Tags) ? null : System.Text.Json.JsonSerializer.Deserialize<string[]>(b.Tags),
+                    CreatedAt = b.CreatedAt,
+                    PublishedAt = b.PublishedAt,
+                    IsPublished = b.IsPublished
+                }).ToList();
+
+                _logger.LogInformation("Fetched {Count} recent books", bookDtos.Count);
+                
+                return bookDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching recent books");
+                throw;
+            }
         }
     }
 }

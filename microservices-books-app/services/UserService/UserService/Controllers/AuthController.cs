@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using UserService.DTOs;
 using UserService.Services;
@@ -77,6 +78,7 @@ namespace UserService.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("register")]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterDto registerDto)
         {
             try
@@ -192,6 +194,7 @@ namespace UserService.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginDto loginDto)
         {
             try
@@ -280,6 +283,7 @@ namespace UserService.Controllers
         }
 
         [HttpPost("google")]
+        [EnableRateLimiting("login")]
         public async Task<ActionResult<AuthResponseDto>> GoogleAuth([FromBody] GoogleAuthDto googleAuthDto)
         {
             try
@@ -322,6 +326,7 @@ namespace UserService.Controllers
         }
 
         [HttpPost("refresh")]
+        [EnableRateLimiting("refreshToken")]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
             try

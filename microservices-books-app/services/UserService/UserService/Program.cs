@@ -1,6 +1,8 @@
 using System.Text;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -96,15 +98,101 @@ builder.Services.AddScoped<IUserService, UserService.Services.UserService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// SignalR
+builder.Services.AddSignalR();
+
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // Login rate limiting: 5 attempts per 5 minutes per IP
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(5);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0; // No queueing, reject immediately when limit exceeded
+    });
+
+    // Register rate limiting: 3 registrations per hour per IP
+    options.AddFixedWindowLimiter("register", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromHours(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
+    // Password reset request: 3 attempts per hour per IP
+    options.AddFixedWindowLimiter("passwordReset", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromHours(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
+    // Refresh token: 10 per 15 minutes per IP
+    options.AddFixedWindowLimiter("refreshToken", opt =>
+    {
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(15);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
+    // Global rate limit for all other endpoints: 100 requests per minute per IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Custom response when rate limit is exceeded
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = retryAfter.TotalSeconds.ToString();
+            await context.HttpContext.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                message = $"Too many requests. Please try again after {retryAfter.TotalSeconds} seconds.",
+                retryAfter = retryAfter.TotalSeconds
+            }, cancellationToken);
+        }
+        else
+        {
+            await context.HttpContext.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                message = "Too many requests. Please try again later."
+            }, cancellationToken);
+        }
+    };
+});
+
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<UserDbContext>();
 
 // CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.AllowAnyOrigin()
+        builder.WithOrigins("http://localhost:3000", "https://localhost:3000")
                .AllowAnyMethod()
-               .AllowAnyHeader();
+               .AllowAnyHeader()
+               .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -138,8 +226,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseRateLimiter(); // Must be after UseCors() and before UseAuthentication()
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<UserService.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHealthChecks("/health");
 
 app.Run();

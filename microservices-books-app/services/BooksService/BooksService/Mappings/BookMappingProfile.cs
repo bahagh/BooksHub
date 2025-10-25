@@ -19,12 +19,14 @@ namespace BooksService.Mappings
             CreateMap<Book, BookDto>()
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom<TagsFromJsonResolver>())
                 .ForMember(dest => dest.EstimatedReadingTime, opt => opt.MapFrom(src => src.EstimatedReadingTime))
-                .ForMember(dest => dest.IsPublished, opt => opt.MapFrom(src => src.IsPublished));
+                .ForMember(dest => dest.IsPublished, opt => opt.MapFrom(src => src.IsPublished))
+                .ForMember(dest => dest.CommentCount, opt => opt.MapFrom(src => src.Comments.Count(c => !c.IsDeleted)));
 
             CreateMap<Book, BookListDto>()
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom<TagsFromJsonResolver>())
                 .ForMember(dest => dest.EstimatedReadingTime, opt => opt.MapFrom(src => src.EstimatedReadingTime))
-                .ForMember(dest => dest.IsPublished, opt => opt.MapFrom(src => src.IsPublished));
+                .ForMember(dest => dest.IsPublished, opt => opt.MapFrom(src => src.IsPublished))
+                .ForMember(dest => dest.CommentCount, opt => opt.MapFrom(src => src.Comments.Count(c => !c.IsDeleted)));
 
             CreateMap<UpdateBookDto, Book>()
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom<UpdateTagsResolver>())

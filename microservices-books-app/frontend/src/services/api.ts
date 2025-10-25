@@ -1,30 +1,24 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { createAppError } from '../utils/errors';
 
 // API Configuration
-const USER_SERVICE_URL = (window as any)?.process?.env?.REACT_APP_USER_SERVICE_URL || 'http://localhost:5555';
-const BOOKS_SERVICE_URL = (window as any)?.process?.env?.REACT_APP_BOOKS_SERVICE_URL || 'http://localhost:5556';
+// In Docker, all requests should go through the API Gateway on port 5000
+// The API Gateway will route to the appropriate service
+const API_GATEWAY_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:5000';
 const API_TIMEOUT = 30000; // 30 seconds
 
-// Create axios instance for UserService (Auth, User management)
-const userServiceClient: AxiosInstance = axios.create({
-  baseURL: USER_SERVICE_URL,
+// Create axios instance that routes through API Gateway
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_GATEWAY_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Create axios instance for BooksService (Books, Ratings, Comments, Analytics)
-const booksServiceClient: AxiosInstance = axios.create({
-  baseURL: BOOKS_SERVICE_URL,
-  timeout: API_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Legacy client for backward compatibility (defaults to UserService)
-const apiClient: AxiosInstance = userServiceClient;
+// Legacy clients point to the same API Gateway for backward compatibility
+const userServiceClient: AxiosInstance = apiClient;
+const booksServiceClient: AxiosInstance = apiClient;
 
 // Configure interceptors for UserService
 const configureAuthInterceptors = (client: AxiosInstance) => {
@@ -87,7 +81,7 @@ const configureResponseInterceptors = (client: AxiosInstance) => {
           const refreshToken = localStorage.getItem('refreshToken');
           if (refreshToken) {
             console.log('🔄 Attempting token refresh...');
-            const response = await axios.post(`${USER_SERVICE_URL}/api/auth/refresh`, {
+            const response = await axios.post(`${API_GATEWAY_URL}/api/auth/refresh`, {
               refreshToken,
             });
 
@@ -147,7 +141,7 @@ const configureResponseInterceptors = (client: AxiosInstance) => {
     // Handle validation errors (400)
     if (error.response?.status === 400) {
       const validationError = {
-        message: error.response.data?.message || 'Invalid request. Please check your input and try again.',
+        message: error.response.data?.message || error.response.data?.Message || 'Invalid request. Please check your input and try again.',
         type: 'VALIDATION_ERROR',
         status: 400,
         details: error.response.data?.errors || error.response.data
@@ -167,9 +161,8 @@ const configureResponseInterceptors = (client: AxiosInstance) => {
   });
 };
 
-// Apply response interceptors to both clients
-configureResponseInterceptors(userServiceClient);
-configureResponseInterceptors(booksServiceClient);
+// Apply response interceptors to the main apiClient (which userServiceClient and booksServiceClient point to)
+configureResponseInterceptors(apiClient);
 
 // Generic API request function with enhanced error handling
 export const apiRequest = async <T>(
@@ -179,12 +172,12 @@ export const apiRequest = async <T>(
     const response = await apiClient(config);
     return response.data;
   } catch (error: any) {
-    // Re-throw enhanced errors from interceptor
-    if (error.type) {
+    // Re-throw enhanced errors from interceptor - these are already properly formatted
+    if (error.type || error.status) {
       throw error;
     }
 
-    // Handle legacy errors
+    // Handle legacy errors (shouldn't reach here if interceptors are working)
     if (error.response) {
       // Server responded with error status
       const apiError = {
@@ -380,11 +373,12 @@ export const booksApi = {
       return response.data;
     } catch (error: any) {
       if (error.type) throw error;
-      throw {
-        message: error.response?.data?.message || 'An error occurred',
-        type: 'API_ERROR',
-        statusCode: error.response?.status
-      };
+      throw createAppError(
+        error.response?.data?.message || 'An error occurred',
+        'API_ERROR',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
@@ -394,11 +388,12 @@ export const booksApi = {
       return response.data;
     } catch (error: any) {
       if (error.type) throw error;
-      throw {
-        message: error.response?.data?.message || 'An error occurred',
-        type: 'API_ERROR',
-        statusCode: error.response?.status
-      };
+      throw createAppError(
+        error.response?.data?.message || 'An error occurred',
+        'API_ERROR',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
@@ -408,11 +403,12 @@ export const booksApi = {
       return response.data;
     } catch (error: any) {
       if (error.type) throw error;
-      throw {
-        message: error.response?.data?.message || 'An error occurred',
-        type: 'API_ERROR',
-        statusCode: error.response?.status
-      };
+      throw createAppError(
+        error.response?.data?.message || 'An error occurred',
+        'API_ERROR',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
@@ -422,11 +418,12 @@ export const booksApi = {
       return response.data;
     } catch (error: any) {
       if (error.type) throw error;
-      throw {
-        message: error.response?.data?.message || 'An error occurred',
-        type: 'API_ERROR',
-        statusCode: error.response?.status
-      };
+      throw createAppError(
+        error.response?.data?.message || 'An error occurred',
+        'API_ERROR',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 };

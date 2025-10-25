@@ -5,7 +5,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "user-service",
           "Port": 5555
         }
       ],
@@ -14,11 +14,71 @@
       "SwaggerKey": "users"
     },
     {
+      "DownstreamPathTemplate": "/hubs/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "user-service",
+          "Port": 5555
+        }
+      ],
+      "UpstreamPathTemplate": "/hubs/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/notifications/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "user-service",
+          "Port": 5555
+        }
+      ],
+      "UpstreamPathTemplate": "/api/notifications/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/notifications",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "user-service",
+          "Port": 5555
+        }
+      ],
+      "UpstreamPathTemplate": "/api/notifications",
+      "UpstreamHttpMethod": [ "GET", "POST" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/library/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "books-service",
+          "Port": 5556
+        }
+      ],
+      "UpstreamPathTemplate": "/api/library/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/library",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "books-service",
+          "Port": 5556
+        }
+      ],
+      "UpstreamPathTemplate": "/api/library",
+      "UpstreamHttpMethod": [ "GET", "POST" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/books/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "books-service",
           "Port": 5556
         }
       ],
@@ -31,7 +91,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "books-service",
           "Port": 5556
         }
       ],
@@ -51,7 +111,7 @@
         {
           "Name": "User Service API",
           "Version": "v1",
-          "Url": "http://localhost:5555/swagger/v1/swagger.json"
+          "Url": "http://user-service:5555/swagger/v1/swagger.json"
         }
       ]
     },
@@ -61,7 +121,7 @@
         {
           "Name": "Books Service API",
           "Version": "v1",
-          "Url": "http://localhost:5556/swagger/v1/swagger.json"
+          "Url": "http://books-service:5556/swagger/v1/swagger.json"
         }
       ]
     }

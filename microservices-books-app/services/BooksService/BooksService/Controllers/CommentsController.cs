@@ -57,9 +57,10 @@ namespace BooksService.Controllers
         }
 
         /// <summary>
-        /// Create a new comment or reply
+        /// Create a new comment or reply (supports anonymous)
         /// </summary>
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ActionResult<CommentDto>> CreateComment(
             Guid bookId, 
             [FromBody] CreateCommentDto createCommentDto)
@@ -67,10 +68,20 @@ namespace BooksService.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (!userId.HasValue)
-                    return Unauthorized();
+                
+                // If anonymous mode is requested, ensure we have an anonymous username
+                if (createCommentDto.IsAnonymous && string.IsNullOrWhiteSpace(createCommentDto.AnonymousUsername))
+                {
+                    return BadRequest(new { message = "Anonymous username is required for anonymous comments" });
+                }
 
-                var comment = await _commentsService.CreateCommentAsync(bookId, createCommentDto, userId.Value);
+                // If not anonymous but no user is logged in, require authentication
+                if (!createCommentDto.IsAnonymous && !userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Authentication required for non-anonymous comments" });
+                }
+
+                var comment = await _commentsService.CreateCommentAsync(bookId, createCommentDto, userId);
                 return CreatedAtAction(nameof(GetBookComments), new { bookId }, comment);
             }
             catch (InvalidOperationException ex)

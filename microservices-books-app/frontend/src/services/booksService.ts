@@ -1,4 +1,5 @@
 import { booksApi as api, handleApiError } from './api';
+import { createAppError } from '../utils/errors';
 import {
   Book,
   CreateBookRequest,
@@ -32,20 +33,14 @@ class BooksService {
       return response;
     } catch (error: any) {
       console.error('❌ Get books error:', error);
-      throw {
-        type: error.type || 'BOOKS_FETCH_ERROR',
-        message: handleApiError(error, 'Failed to load books. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Failed to load books. Please try again.'), error.type || 'BOOKS_FETCH_ERROR');
     }
   }
 
   async getBookById(id: string): Promise<Book> {
     try {
       if (!id) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book ID is required'
-        };
+        throw createAppError('Book ID is required', 'VALIDATION_ERROR');
       }
 
       const response = await api.get<Book>(`${this.BASE_URL}/${id}`);
@@ -54,16 +49,10 @@ class BooksService {
       console.error('❌ Get book error:', error);
       
       if (error.status === 404) {
-        throw {
-          type: 'NOT_FOUND_ERROR',
-          message: 'Book not found'
-        };
+        throw createAppError('Book not found', 'NOT_FOUND_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'BOOK_FETCH_ERROR',
-        message: handleApiError(error, 'Failed to load book details')
-      };
+      throw createAppError(handleApiError(error, 'Failed to load book details'), error.type || 'BOOK_FETCH_ERROR');
     }
   }
 
@@ -71,24 +60,15 @@ class BooksService {
     try {
       // Validate required fields
       if (!bookData.title?.trim()) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book title is required'
-        };
+        throw createAppError('Book title is required', 'VALIDATION_ERROR');
       }
 
       if (!bookData.content?.trim()) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book content is required'
-        };
+        throw createAppError('Book content is required', 'VALIDATION_ERROR');
       }
 
       if (bookData.content.trim().length < 10) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book content must be at least 10 characters'
-        };
+        throw createAppError('Book content must be at least 10 characters', 'VALIDATION_ERROR');
       }
 
       console.log('📤 Sending book data:', JSON.stringify(bookData, null, 2));
@@ -101,24 +81,15 @@ class BooksService {
       console.error('❌ Error status:', error.response?.status);
       
       if (error.status === 409) {
-        throw {
-          type: 'CONFLICT_ERROR',
-          message: 'A book with this ISBN already exists'
-        };
+        throw createAppError('A book with this ISBN already exists', 'CONFLICT_ERROR', error.status);
       }
 
       if (error.status === 401) {
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'You must be logged in to create books'
-        };
+        throw createAppError('You must be logged in to create books', 'AUTH_ERROR', error.status);
       }
 
       if (error.status === 403) {
-        throw {
-          type: 'FORBIDDEN_ERROR',
-          message: 'You do not have permission to create books'
-        };
+        throw createAppError('You do not have permission to create books', 'FORBIDDEN_ERROR', error.status);
       }
 
       // Extract backend validation error message
@@ -130,42 +101,27 @@ class BooksService {
         console.error('❌ Backend error message:', backendMessage);
       }
       
-      throw {
-        type: error.type || 'BOOK_CREATE_ERROR',
-        message: backendMessage || handleApiError(error, 'Failed to create book. Please try again.')
-      };
+      throw createAppError(backendMessage || handleApiError(error, 'Failed to create book. Please try again.'), error.type || 'BOOK_CREATE_ERROR', error.response?.status, error.response?.data);
     }
   }
 
   async updateBook(id: string, bookData: UpdateBookRequest): Promise<Book> {
     try {
       if (!id) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book ID is required'
-        };
+        throw createAppError('Book ID is required', 'VALIDATION_ERROR');
       }
 
       // Validate fields if they are provided
       if (bookData.title !== undefined && !bookData.title?.trim()) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book title cannot be empty'
-        };
+        throw createAppError('Book title cannot be empty', 'VALIDATION_ERROR');
       }
 
       if (bookData.author !== undefined && !bookData.author?.trim()) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Author name cannot be empty'
-        };
+        throw createAppError('Author name cannot be empty', 'VALIDATION_ERROR');
       }
 
       if (bookData.content !== undefined && bookData.content.trim().length < 10) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Content must be at least 10 characters long'
-        };
+        throw createAppError('Content must be at least 10 characters long', 'VALIDATION_ERROR');
       }
 
       console.log('📤 Updating book with data:', JSON.stringify(bookData, null, 2));
@@ -176,40 +132,25 @@ class BooksService {
       console.error('❌ Update book error:', error);
       
       if (error.status === 404) {
-        throw {
-          type: 'NOT_FOUND_ERROR',
-          message: 'Book not found'
-        };
+        throw createAppError('Book not found', 'NOT_FOUND_ERROR', error.status);
       }
 
       if (error.status === 401) {
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'You must be logged in to update books'
-        };
+        throw createAppError('You must be logged in to update books', 'AUTH_ERROR', error.status);
       }
 
       if (error.status === 403) {
-        throw {
-          type: 'FORBIDDEN_ERROR',
-          message: 'You do not have permission to update this book'
-        };
+        throw createAppError('You do not have permission to update this book', 'FORBIDDEN_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'BOOK_UPDATE_ERROR',
-        message: handleApiError(error, 'Failed to update book. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Failed to update book. Please try again.'), error.type || 'BOOK_UPDATE_ERROR');
     }
   }
 
   async deleteBook(id: string): Promise<void> {
     try {
       if (!id) {
-        throw {
-          type: 'VALIDATION_ERROR',
-          message: 'Book ID is required'
-        };
+        throw createAppError('Book ID is required', 'VALIDATION_ERROR');
       }
 
       await api.delete(`${this.BASE_URL}/${id}`);
@@ -218,30 +159,18 @@ class BooksService {
       console.error('❌ Delete book error:', error);
       
       if (error.status === 404) {
-        throw {
-          type: 'NOT_FOUND_ERROR',
-          message: 'Book not found'
-        };
+        throw createAppError('Book not found', 'NOT_FOUND_ERROR', error.status);
       }
 
       if (error.status === 401) {
-        throw {
-          type: 'AUTH_ERROR',
-          message: 'You must be logged in to delete books'
-        };
+        throw createAppError('You must be logged in to delete books', 'AUTH_ERROR', error.status);
       }
 
       if (error.status === 403) {
-        throw {
-          type: 'FORBIDDEN_ERROR',
-          message: 'You do not have permission to delete this book'
-        };
+        throw createAppError('You do not have permission to delete this book', 'FORBIDDEN_ERROR', error.status);
       }
       
-      throw {
-        type: error.type || 'BOOK_DELETE_ERROR',
-        message: handleApiError(error, 'Failed to delete book. Please try again.')
-      };
+      throw createAppError(handleApiError(error, 'Failed to delete book. Please try again.'), error.type || 'BOOK_DELETE_ERROR');
     }
   }
 
@@ -394,10 +323,7 @@ class BooksService {
       return Array.isArray(response) ? response : [];
     } catch (error: any) {
       console.error('❌ Get genres error:', error);
-      throw {
-        type: error.type || 'GENRES_FETCH_ERROR',
-        message: handleApiError(error, 'Failed to load genres')
-      };
+      throw createAppError(handleApiError(error, 'Failed to load genres'), error.type || 'GENRES_FETCH_ERROR');
     }
   }
 

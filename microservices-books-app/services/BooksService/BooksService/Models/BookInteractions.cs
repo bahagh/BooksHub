@@ -11,14 +11,20 @@ namespace BooksService.Models
         [Required]
         public Guid BookId { get; set; }
 
-        [Required]
-        public Guid UserId { get; set; }
+        // Now nullable to support anonymous ratings
+        public Guid? UserId { get; set; }
 
         [Range(1, 5)]
         public int Rating { get; set; }
 
         [MaxLength(1000)]
         public string? Review { get; set; }
+
+        // New: Anonymous support
+        public bool IsAnonymous { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? AnonymousUsername { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -36,8 +42,8 @@ namespace BooksService.Models
         [Required]
         public Guid BookId { get; set; }
 
-        [Required]
-        public Guid UserId { get; set; }
+        // Now nullable to support anonymous comments
+        public Guid? UserId { get; set; }
 
         [Required]
         [MaxLength(2000)]
@@ -47,6 +53,12 @@ namespace BooksService.Models
 
         public bool IsEdited { get; set; } = false;
         public bool IsDeleted { get; set; } = false;
+
+        // New: Anonymous support
+        public bool IsAnonymous { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? AnonymousUsername { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -77,6 +89,23 @@ namespace BooksService.Models
         public TimeSpan ReadingDuration { get; set; }
 
         // Navigation properties
+        [ForeignKey("BookId")]
+        public Book Book { get; set; } = null!;
+    }
+
+    public class UserLibrary
+    {
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        public Guid UserId { get; set; }
+
+        [Required]
+        public Guid BookId { get; set; }
+
+        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+
         [ForeignKey("BookId")]
         public Book Book { get; set; } = null!;
     }

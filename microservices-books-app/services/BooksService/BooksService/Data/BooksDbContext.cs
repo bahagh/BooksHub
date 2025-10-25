@@ -13,6 +13,7 @@ namespace BooksService.Data
         public DbSet<BookRating> BookRatings { get; set; }
         public DbSet<BookComment> BookComments { get; set; }
         public DbSet<BookView> BookViews { get; set; }
+        public DbSet<UserLibrary> UserLibraries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -108,6 +109,22 @@ namespace BooksService.Data
 
                 entity.HasOne(e => e.Book)
                       .WithMany(b => b.Views)
+                      .HasForeignKey(e => e.BookId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // UserLibrary configuration
+            modelBuilder.Entity<UserLibrary>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.BookId }).IsUnique(); // Prevent duplicates
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.AddedAt);
+
+                entity.Property(e => e.AddedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.Book)
+                      .WithMany()
                       .HasForeignKey(e => e.BookId)
                       .OnDelete(DeleteBehavior.Cascade);
             });

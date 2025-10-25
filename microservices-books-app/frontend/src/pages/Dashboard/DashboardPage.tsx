@@ -13,6 +13,7 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Skeleton,
 } from '@mui/material';
 import {
   Book as BookIcon,
@@ -67,13 +68,28 @@ const DashboardPage: React.FC = () => {
       const userBooks = myBooksResponse.items.filter(book => book.userId === user?.id);
       setMyBooks(userBooks);
 
-      // Calculate stats from user's books
-      const published = userBooks.filter(b => b.status === 2 || b.status === 'Published').length;
-      const drafts = userBooks.filter(b => b.status === 0 || b.status === 'Draft').length;
-      const totalViews = userBooks.reduce((sum, b) => sum + (b.viewCount || 0), 0);
-      const totalRatings = userBooks.reduce((sum, b) => sum + (b.ratingCount || 0), 0);
+      // Helper function to normalize status values
+      const getStatusValue = (status: any): number => {
+        if (typeof status === 'number') return status;
+        if (typeof status === 'string') {
+          const statusMap: { [key: string]: number } = {
+            'draft': 0,
+            'inreview': 1,
+            'published': 2,
+            'archived': 3
+          };
+          return statusMap[status.toLowerCase()] ?? 0;
+        }
+        return 0;
+      };
+
+      // Calculate stats from user's books with proper status handling
+      const published = userBooks.filter(b => getStatusValue(b.status) === 2).length;
+      const drafts = userBooks.filter(b => getStatusValue(b.status) === 0).length;
+      const totalViews = userBooks.reduce((sum, b) => sum + (b.viewCount ?? 0), 0);
+      const totalRatings = userBooks.reduce((sum, b) => sum + (b.ratingCount ?? 0), 0);
       const avgRating = userBooks.length > 0 
-        ? userBooks.reduce((sum, b) => sum + (b.averageRating || 0), 0) / userBooks.length 
+        ? userBooks.reduce((sum, b) => sum + (b.averageRating ?? 0), 0) / userBooks.length 
         : 0;
 
       setStats({
@@ -142,9 +158,43 @@ const DashboardPage: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress size={60} />
+        <Box sx={{ mt: 2, mb: 4 }}>
+          <Skeleton variant="text" width="60%" height={60} sx={{ mb: 1 }} />
+          <Skeleton variant="text" width="40%" height={40} />
         </Box>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map((item) => (
+            <Grid item xs={12} sm={6} md={3} key={item}>
+              <Card>
+                <CardContent>
+                  <Skeleton variant="circular" width={56} height={56} sx={{ float: 'right' }} />
+                  <Skeleton variant="text" width="60%" height={50} />
+                  <Skeleton variant="text" width="40%" />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3 }}>
+              <Skeleton variant="text" width="40%" height={40} sx={{ mb: 2 }} />
+              {[1, 2, 3].map((item) => (
+                <Box key={item} sx={{ mb: 2 }}>
+                  <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2, mb: 1 }} />
+                </Box>
+              ))}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3 }}>
+              <Skeleton variant="text" width="60%" height={40} sx={{ mb: 2 }} />
+              {[1, 2, 3, 4].map((item) => (
+                <Box key={item} sx={{ mb: 2 }}>
+                  <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
+                </Box>
+              ))}
+            </Paper>
+          </Grid>
+        </Grid>
       </Container>
     );
   }
@@ -163,11 +213,22 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Box sx={{ mb: 4, mt: 2 }}>
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          gutterBottom
+          sx={{
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
           Welcome back, {user?.firstName || user?.username}! 👋
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 400 }}>
           Here's what's happening with your reading journey
         </Typography>
       </Box>
@@ -175,19 +236,31 @@ const DashboardPage: React.FC = () => {
       <Grid container spacing={3}>
         {/* Stats Cards */}
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ cursor: 'pointer' }} onClick={() => navigate('/my-books')}>
+          <Card 
+            sx={{ 
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 24px rgba(102, 126, 234, 0.4)',
+              }
+            }} 
+            onClick={() => navigate('/my-books')}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" component="div" color="primary">
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
                     {stats.totalBooks}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                     My Books
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  <BookIcon />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <BookIcon sx={{ fontSize: 32 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -195,19 +268,29 @@ const DashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+              color: 'white',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 24px rgba(17, 153, 142, 0.4)',
+              }
+            }}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" component="div" color="success.main">
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
                     {stats.publishedBooks}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                     Published
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <ViewIcon />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <ViewIcon sx={{ fontSize: 32 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -215,19 +298,29 @@ const DashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 24px rgba(240, 147, 251, 0.4)',
+              }
+            }}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" component="div" color="warning.main">
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
                     {stats.avgRating}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                     Avg Rating
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <StarIcon />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <StarIcon sx={{ fontSize: 32 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -235,19 +328,29 @@ const DashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: 'white',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 24px rgba(79, 172, 254, 0.4)',
+              }
+            }}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" component="div" color="info.main">
+                  <Typography variant="h3" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
                     {stats.totalViews}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                     Total Views
                   </Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
-                  <ViewIcon />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <ViewIcon sx={{ fontSize: 32 }} />
                 </Avatar>
               </Box>
             </CardContent>
@@ -256,29 +359,76 @@ const DashboardPage: React.FC = () => {
 
         {/* My Recent Books */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
+          <Paper 
+            sx={{ 
+              p: 3,
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              transition: 'box-shadow 0.3s ease-in-out',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              }
+            }}
+          >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" component="h2">
+              <Typography 
+                variant="h5" 
+                component="h2"
+                sx={{ fontWeight: 600 }}
+              >
                 My Recent Books
               </Typography>
               <Button 
                 variant="contained" 
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/books/create')}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+                  }
+                }}
               >
                 Create New
               </Button>
             </Box>
             {myBooks.length === 0 ? (
-              <Box textAlign="center" py={4}>
-                <Typography variant="body1" color="text.secondary" gutterBottom>
+              <Box 
+                textAlign="center" 
+                py={6}
+                sx={{
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+                  borderRadius: 2,
+                }}
+              >
+                <BookIcon sx={{ fontSize: 80, color: 'primary.main', opacity: 0.3, mb: 2 }} />
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   You haven't created any books yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Start your writing journey by creating your first book
                 </Typography>
                 <Button 
                   variant="contained" 
+                  size="large"
                   startIcon={<AddIcon />}
                   onClick={() => navigate('/books/create')}
-                  sx={{ mt: 2 }}
+                  sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                    px: 4,
+                    py: 1.5,
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)',
+                    }
+                  }}
                 >
                   Create Your First Book
                 </Button>
@@ -287,48 +437,89 @@ const DashboardPage: React.FC = () => {
               <Grid container spacing={2}>
                 {myBooks.slice(0, 5).map((book) => (
                   <Grid item xs={12} key={book.id}>
-                    <Card variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
+                    <Card 
+                      sx={{ 
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': { 
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                          transform: 'translateY(-4px)',
+                          borderColor: 'primary.main',
+                        } 
+                      }}
+                    >
                       <CardContent>
                         <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
                           <Box flex={1}>
                             <Box display="flex" alignItems="center" gap={1} mb={1}>
-                              <Typography variant="h6" component="h3">
+                              <Typography 
+                                variant="h6" 
+                                component="h3"
+                                sx={{ fontWeight: 600 }}
+                              >
                                 {book.title}
                               </Typography>
                               <Chip 
                                 label={getStatusText(book.status)} 
                                 color={getStatusColor(book.status)}
                                 size="small"
+                                sx={{ fontWeight: 500 }}
                               />
                             </Box>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                            <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontWeight: 500 }}>
                               by {book.author}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {book.genre}
-                            </Typography>
+                            <Chip 
+                              label={book.genre}
+                              size="small"
+                              variant="outlined"
+                              sx={{ mt: 0.5 }}
+                            />
                           </Box>
                           <Box display="flex" flexDirection="column" alignItems="flex-end" gap={1}>
-                            <Box display="flex" alignItems="center" gap={0.5}>
-                              <StarIcon sx={{ color: 'gold', fontSize: 18 }} />
-                              <Typography variant="body2">
-                                {book.averageRating?.toFixed(1) || '0.0'} ({book.ratingCount || 0})
+                            <Box 
+                              display="flex" 
+                              alignItems="center" 
+                              gap={0.5}
+                              sx={{
+                                bgcolor: 'warning.light',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                              }}
+                            >
+                              <StarIcon sx={{ color: 'warning.dark', fontSize: 18 }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {book.averageRating?.toFixed(1) || '0.0'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ({book.ratingCount || 0})
                               </Typography>
                             </Box>
                             <Box display="flex" alignItems="center" gap={0.5}>
-                              <ViewIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">
+                              <ViewIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {book.viewCount || 0} views
                               </Typography>
                             </Box>
                           </Box>
                         </Box>
                       </CardContent>
-                      <CardActions>
+                      <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
                         <Button 
                           size="small" 
                           variant="contained"
                           onClick={() => navigate(`/books/${book.id}`)}
+                          sx={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            transition: 'all 0.2s ease-in-out',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                              transform: 'scale(1.05)',
+                            }
+                          }}
                         >
                           View Details
                         </Button>
@@ -336,6 +527,12 @@ const DashboardPage: React.FC = () => {
                           size="small"
                           startIcon={<EditIcon />}
                           onClick={() => navigate(`/books/${book.id}/edit`)}
+                          sx={{
+                            transition: 'all 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'scale(1.05)',
+                            }
+                          }}
                         >
                           Edit
                         </Button>
@@ -361,10 +558,35 @@ const DashboardPage: React.FC = () => {
 
         {/* Popular Books */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
+          <Paper 
+            sx={{ 
+              p: 3,
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              transition: 'box-shadow 0.3s ease-in-out',
+              '&:hover': {
+                boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+              }
+            }}
+          >
             <Box display="flex" alignItems="center" gap={1} mb={3}>
-              <TrendingIcon color="primary" />
-              <Typography variant="h6" component="h2">
+              <Box
+                sx={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  borderRadius: 2,
+                  p: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <TrendingIcon sx={{ color: 'white' }} />
+              </Box>
+              <Typography 
+                variant="h5" 
+                component="h2"
+                sx={{ fontWeight: 600 }}
+              >
                 Popular Books
               </Typography>
             </Box>
@@ -377,10 +599,17 @@ const DashboardPage: React.FC = () => {
                 {popularBooks.slice(0, 4).map((book) => (
                   <Grid item xs={12} key={book.id}>
                     <Card 
-                      variant="outlined"
                       sx={{ 
                         cursor: 'pointer',
-                        '&:hover': { boxShadow: 2 }
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        transition: 'all 0.3s ease-in-out',
+                        '&:hover': { 
+                          boxShadow: '0 6px 20px rgba(240, 147, 251, 0.3)',
+                          transform: 'translateX(4px)',
+                          borderColor: 'secondary.main',
+                        }
                       }}
                       onClick={() => navigate(`/books/${book.id}`)}
                     >

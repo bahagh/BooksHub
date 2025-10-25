@@ -85,17 +85,22 @@ export interface UpdateBookRequest {
 export interface BookRating {
   id: string;
   bookId: string;
-  userId: string;
+  userId?: string; // Now optional (nullable for anonymous)
+  username?: string; // Display name (anonymous or real)
   rating: number;
   review?: string;
   createdAt: string;
   updatedAt: string;
+  isAnonymous: boolean; // NEW: Flag for anonymous ratings
+  anonymousUsername?: string; // NEW: Anonymous display name
   user?: User;
 }
 
 export interface CreateRatingRequest {
   rating: number;
   review?: string;
+  isAnonymous?: boolean; // NEW: Allow anonymous rating
+  anonymousUsername?: string; // NEW: Required if isAnonymous is true
 }
 
 export interface UpdateRatingRequest {
@@ -107,11 +112,15 @@ export interface UpdateRatingRequest {
 export interface BookComment {
   id: string;
   bookId: string;
-  userId: string;
+  userId?: string; // Now optional (nullable for anonymous)
+  username?: string; // Display name (anonymous or real)
   content: string;
   parentCommentId?: string;
   createdAt: string;
   updatedAt: string;
+  isAnonymous: boolean; // NEW: Flag for anonymous comments
+  anonymousUsername?: string; // NEW: Anonymous display name
+  isEdited?: boolean; // Existing field
   user?: User;
   replies?: BookComment[];
   replyCount?: number;
@@ -120,6 +129,8 @@ export interface BookComment {
 export interface CreateCommentRequest {
   content: string;
   parentCommentId?: string;
+  isAnonymous?: boolean; // NEW: Allow anonymous comment
+  anonymousUsername?: string; // NEW: Required if isAnonymous is true
 }
 
 export interface UpdateCommentRequest {
@@ -271,4 +282,79 @@ export interface AuthContextType {
 export interface ThemeContextType {
   darkMode: boolean;
   toggleDarkMode: () => void;
+}
+
+// Notification Types
+export interface Notification {
+  id: string;
+  userId: string;
+  type: 'CommentReply' | 'NewRating' | 'BookUpdate' | 'NewFollower';
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface CreateNotificationRequest {
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+}
+
+export interface UpdateNotificationRequest {
+  isRead: boolean;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  userId: string;
+  emailNotifications: boolean;
+  emailOnCommentReply: boolean;
+  emailOnNewRating: boolean;
+  emailOnBookUpdate: boolean;
+  emailOnNewFollower: boolean;
+  inAppNotifications: boolean;
+  inAppOnCommentReply: boolean;
+  inAppOnNewRating: boolean;
+  inAppOnBookUpdate: boolean;
+  inAppOnNewFollower: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateNotificationPreferencesRequest {
+  emailNotifications: boolean;
+  emailOnCommentReply: boolean;
+  emailOnNewRating: boolean;
+  emailOnBookUpdate: boolean;
+  emailOnNewFollower: boolean;
+  inAppNotifications: boolean;
+  inAppOnCommentReply: boolean;
+  inAppOnNewRating: boolean;
+  inAppOnBookUpdate: boolean;
+  inAppOnNewFollower: boolean;
+}
+
+export interface NotificationSummary {
+  totalCount: number;
+  unreadCount: number;
+  recentNotifications: Notification[];
+}
+
+export interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  isConnected: boolean;
+  isLoading: boolean;
+  fetchNotifications: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  deleteAllRead: () => Promise<void>;
+  preferences: NotificationPreferences | null;
+  updatePreferences: (prefs: UpdateNotificationPreferencesRequest) => Promise<void>;
 }

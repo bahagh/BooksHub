@@ -195,6 +195,169 @@ namespace UserService.Services
             await SendEmailAsync(toEmail, subject, body);
         }
 
+        public async Task SendCommentReplyNotificationAsync(string toEmail, string userName, string commenterName, string bookTitle, string bookId, string commentId)
+        {
+            var subject = "New Reply to Your Comment - Books App";
+            var commentLink = $"https://booksapp.com/books/{bookId}?comment={commentId}";
+            var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; }}
+        .button {{ display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>📚 Books App</h1>
+        </div>
+        <div class=""content"">
+            <h2>💬 New Reply to Your Comment</h2>
+            <p>Hi {userName},</p>
+            <p><strong>{commenterName}</strong> replied to your comment on <strong>{bookTitle}</strong>.</p>
+            <a href=""{commentLink}"" class=""button"">View Reply</a>
+            <p>Best regards,<br><strong>Books App Team</strong></p>
+        </div>
+        <div class=""footer"">
+            <p>© 2025 Books App. All rights reserved.</p>
+            <p><a href=""https://booksapp.com/settings"">Manage notification preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
+        public async Task SendNewRatingNotificationAsync(string toEmail, string userName, string raterName, int rating, string bookTitle, string bookId)
+        {
+            var subject = "New Rating on Your Book - Books App";
+            var bookLink = $"https://booksapp.com/books/{bookId}";
+            var stars = string.Join("", Enumerable.Repeat("⭐", rating));
+            var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; }}
+        .rating {{ font-size: 24px; color: #ffc107; margin: 10px 0; }}
+        .button {{ display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>📚 Books App</h1>
+        </div>
+        <div class=""content"">
+            <h2>⭐ New Rating on Your Book</h2>
+            <p>Hi {userName},</p>
+            <p><strong>{raterName}</strong> rated your book <strong>{bookTitle}</strong>:</p>
+            <div class=""rating"">{stars} ({rating}/5)</div>
+            <a href=""{bookLink}"" class=""button"">View Book</a>
+            <p>Best regards,<br><strong>Books App Team</strong></p>
+        </div>
+        <div class=""footer"">
+            <p>© 2025 Books App. All rights reserved.</p>
+            <p><a href=""https://booksapp.com/settings"">Manage notification preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
+        public async Task SendBookUpdateNotificationAsync(string toEmail, string userName, string bookTitle, string bookId, string updateType)
+        {
+            var subject = "Book Update - Books App";
+            var bookLink = $"https://booksapp.com/books/{bookId}";
+            var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; }}
+        .button {{ display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>📚 Books App</h1>
+        </div>
+        <div class=""content"">
+            <h2>📖 Book Update</h2>
+            <p>Hi {userName},</p>
+            <p>The book <strong>{bookTitle}</strong> has been <strong>{updateType}</strong>.</p>
+            <a href=""{bookLink}"" class=""button"">View Book</a>
+            <p>Best regards,<br><strong>Books App Team</strong></p>
+        </div>
+        <div class=""footer"">
+            <p>© 2025 Books App. All rights reserved.</p>
+            <p><a href=""https://booksapp.com/settings"">Manage notification preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
+        public async Task SendNewFollowerNotificationAsync(string toEmail, string userName, string followerName, string followerId)
+        {
+            var subject = "New Follower - Books App";
+            var profileLink = $"https://booksapp.com/profile/{followerId}";
+            var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none; }}
+        .button {{ display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>📚 Books App</h1>
+        </div>
+        <div class=""content"">
+            <h2>👤 New Follower</h2>
+            <p>Hi {userName},</p>
+            <p><strong>{followerName}</strong> started following you!</p>
+            <a href=""{profileLink}"" class=""button"">View Profile</a>
+            <p>Best regards,<br><strong>Books App Team</strong></p>
+        </div>
+        <div class=""footer"">
+            <p>© 2025 Books App. All rights reserved.</p>
+            <p><a href=""https://booksapp.com/settings"">Manage notification preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
         private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
         {
             try

@@ -24,6 +24,7 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Book as BookIcon,
+  BookmarkBorder as LibraryIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
   Settings as SettingsIcon,
@@ -32,6 +33,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
+import NotificationDropdown from '../Notifications/NotificationDropdown';
 
 const drawerWidth = 280;
 
@@ -60,9 +63,15 @@ const navItems: NavItem[] = [
     requireAuth: true,
   },
   {
-    text: 'My Library',
+    text: 'My Books',
     icon: <BookIcon />,
     path: '/my-books',
+    requireAuth: true,
+  },
+  {
+    text: 'My Library',
+    icon: <LibraryIcon />,
+    path: '/library',
     requireAuth: true,
   },
   {
@@ -84,10 +93,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
+  const { unreadCount } = useNotifications();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -212,8 +223,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <SearchIcon />
               </IconButton>
               
-              <IconButton color="inherit">
-                <Badge badgeContent={3} color="error">
+              <IconButton
+                color="inherit"
+                onClick={(e) => setNotificationAnchor(e.currentTarget)}
+              >
+                <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
@@ -315,6 +329,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Toolbar />
         {children}
       </Box>
+
+      {/* Notification Dropdown */}
+      <NotificationDropdown
+        anchorEl={notificationAnchor}
+        onClose={() => setNotificationAnchor(null)}
+      />
     </Box>
   );
 };

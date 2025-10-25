@@ -78,6 +78,7 @@ namespace BooksService.DTOs
         public int ViewCount { get; set; }
         public double AverageRating { get; set; }
         public int RatingCount { get; set; }
+        public int CommentCount { get; set; }  // Added to display comment count
         public string[]? Tags { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -89,15 +90,18 @@ namespace BooksService.DTOs
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        public Guid UserId { get; set; }  // Added for dashboard filtering
         public string? Description { get; set; }
         public string? Author { get; set; }
         public string? Genre { get; set; }
         public int WordCount { get; set; }
         public string EstimatedReadingTime { get; set; } = string.Empty;
         public BookStatus Status { get; set; }
+        public bool IsPublic { get; set; }  // Added for library feature
         public int ViewCount { get; set; }
         public double AverageRating { get; set; }
         public int RatingCount { get; set; }
+        public int CommentCount { get; set; }  // Added to display comment count
         public string[]? Tags { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? PublishedAt { get; set; }

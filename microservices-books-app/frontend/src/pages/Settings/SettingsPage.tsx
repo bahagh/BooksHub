@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -21,6 +21,7 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  CircularProgress,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -30,16 +31,21 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
+  const { preferences, updatePreferences } = useNotifications();
   const [success, setSuccess] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
   
   // Notification Settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [bookUpdates, setBookUpdates] = useState(true);
   const [commentReplies, setCommentReplies] = useState(true);
   const [newFollowers, setNewFollowers] = useState(false);
+  const [newRatings, setNewRatings] = useState(true);
 
   // Privacy Settings
   const [profileVisibility, setProfileVisibility] = useState('public');
@@ -51,15 +57,46 @@ const SettingsPage: React.FC = () => {
   const [theme, setTheme] = useState('light');
   const [booksPerPage, setBooksPerPage] = useState('12');
 
-  const handleSaveSettings = () => {
-    // TODO: Implement save settings API call
-    setSuccess('Settings saved successfully!');
-    setTimeout(() => setSuccess(''), 3000);
+  // Load preferences on mount
+  useEffect(() => {
+    if (preferences) {
+      setEmailNotifications(preferences.emailNotifications);
+      setBookUpdates(preferences.emailOnBookUpdate);
+      setCommentReplies(preferences.emailOnCommentReply);
+      setNewFollowers(preferences.emailOnNewFollower);
+      setNewRatings(preferences.emailOnNewRating);
+    }
+  }, [preferences]);
+
+  const handleSaveSettings = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      await updatePreferences({
+        emailNotifications,
+        emailOnCommentReply: commentReplies,
+        emailOnNewRating: newRatings,
+        emailOnBookUpdate: bookUpdates,
+        emailOnNewFollower: newFollowers,
+        inAppNotifications: true,
+        inAppOnCommentReply: true,
+        inAppOnNewRating: true,
+        inAppOnBookUpdate: true,
+        inAppOnNewFollower: true,
+      });
+      
+      setSuccess('Settings saved successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteAccount = () => {
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      // TODO: Implement delete account API call
       alert('Account deletion feature coming soon');
     }
   };
@@ -78,6 +115,12 @@ const SettingsPage: React.FC = () => {
       {success && (
         <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
           {success}
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
         </Alert>
       )}
 
@@ -130,6 +173,19 @@ const SettingsPage: React.FC = () => {
                     <Switch
                       checked={commentReplies}
                       onChange={(e) => setCommentReplies(e.target.checked)}
+                    />
+                  </ListItemSecondaryAction>
+                </ListItem>
+                
+                <ListItem>
+                  <ListItemText 
+                    primary="New Ratings" 
+                    secondary="Get notified when someone rates your book"
+                  />
+                  <ListItemSecondaryAction>
+                    <Switch
+                      checked={newRatings}
+                      onChange={(e) => setNewRatings(e.target.checked)}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -346,8 +402,10 @@ const SettingsPage: React.FC = () => {
               variant="contained"
               size="large"
               onClick={handleSaveSettings}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : undefined}
             >
-              Save Settings
+              {loading ? 'Saving...' : 'Save Settings'}
             </Button>
           </Box>
         </Grid>

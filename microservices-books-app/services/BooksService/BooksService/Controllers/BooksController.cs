@@ -126,11 +126,7 @@ namespace BooksService.Controllers
                     return NotFound();
                 }
 
-                // Record analytics view and increment view count
-                if (userId.HasValue)
-                {
-                    await _analyticsService.RecordBookViewAsync(id, userId.Value);
-                }
+                // Increment view count only once (it already records to BookViews table if userId provided)
                 await _booksService.IncrementViewCountAsync(id, userId);
 
                 return Ok(book);
@@ -201,6 +197,50 @@ namespace BooksService.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting genres");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("popular")]
+        public async Task<ActionResult<List<BookListDto>>> GetPopularBooks([FromQuery] int limit = 10)
+        {
+            try
+            {
+                _logger.LogInformation("Getting popular books with limit {Limit}", limit);
+                
+                if (limit <= 0 || limit > 100)
+                {
+                    return BadRequest(new { message = "Limit must be between 1 and 100" });
+                }
+
+                var books = await _booksService.GetPopularBooksAsync(limit);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting popular books");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("recent")]
+        public async Task<ActionResult<List<BookListDto>>> GetRecentBooks([FromQuery] int limit = 10)
+        {
+            try
+            {
+                _logger.LogInformation("Getting recent books with limit {Limit}", limit);
+                
+                if (limit <= 0 || limit > 100)
+                {
+                    return BadRequest(new { message = "Limit must be between 1 and 100" });
+                }
+
+                var books = await _booksService.GetRecentBooksAsync(limit);
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting recent books");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

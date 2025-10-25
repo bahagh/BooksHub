@@ -12,12 +12,15 @@ import {
   Grid,
   FormControlLabel,
   Checkbox,
+  Divider,
 } from '@mui/material';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegisterFormData } from '../../types';
+import authService from '../../services/authService';
 
 const validationSchema = yup.object({
   username: yup
@@ -63,6 +66,7 @@ const RegisterPage: React.FC = () => {
   const { register, isAuthenticated, isLoading } = useAuth();
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -70,6 +74,40 @@ const RegisterPage: React.FC = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  // Handle Google Sign-In success
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('Google sign-in failed. Please try again.');
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    setError('');
+
+    try {
+      const response = await authService.googleLogin({
+        idToken: credentialResponse.credential,
+      });
+
+      // Store tokens
+      localStorage.setItem('accessToken', response.token);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.user));
+
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // Handle Google Sign-In error
+  const handleGoogleError = () => {
+    setError('Google sign-in was cancelled or failed. Please try again.');
+  };
 
   const formik = useFormik<RegisterFormData>({
     initialValues: {
@@ -130,22 +168,33 @@ const RegisterPage: React.FC = () => {
     >
       <Container component="main" maxWidth="md">
         <Paper
-          elevation={10}
+          elevation={0}
           sx={{
-            p: 4,
+            p: 5,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            borderRadius: 3,
+            borderRadius: 4,
+            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            animation: 'fadeIn 0.5s ease-out',
           }}
         >
           {/* Logo and Title */}
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Box sx={{ mb: 4, textAlign: 'center' }}>
             <Typography
-              variant="h3"
+              variant="h2"
               component="h1"
               gutterBottom
-              sx={{ fontWeight: 'bold', color: 'primary.main' }}
+              sx={{ 
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                mb: 2,
+              }}
             >
               📚 BookHub
             </Typography>
@@ -317,7 +366,24 @@ const RegisterPage: React.FC = () => {
               variant="contained"
               size="large"
               disabled={isSubmitting || !formik.isValid}
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
+              sx={{ 
+                mt: 3, 
+                mb: 2, 
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(102, 126, 234, 0.5)',
+                },
+                '&:disabled': {
+                  background: 'rgba(0, 0, 0, 0.12)',
+                }
+              }}
             >
               {isSubmitting ? (
                 <CircularProgress size={24} color="inherit" />
@@ -327,6 +393,25 @@ const RegisterPage: React.FC = () => {
             </Button>
 
             {/* Divider */}
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                OR
+              </Typography>
+            </Divider>
+
+            {/* Google Sign-In Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              {isGoogleLoading ? (
+                <CircularProgress size={40} />
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  width="370"
+                />
+              )}
+            </Box>
+
             {/* Link to Login */}
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">

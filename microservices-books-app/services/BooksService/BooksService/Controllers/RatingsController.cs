@@ -63,19 +63,30 @@ namespace BooksService.Controllers
         }
 
         /// <summary>
-        /// Create a new rating for the book
+        /// Create a new rating for the book (supports anonymous ratings)
         /// </summary>
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ActionResult<RatingDto>> CreateRating(Guid bookId, [FromBody] CreateRatingDto createRatingDto)
         {
             try
             {
                 var userId = GetCurrentUserId();
-                if (!userId.HasValue)
-                    return Unauthorized();
 
-                var rating = await _ratingsService.CreateRatingAsync(bookId, createRatingDto, userId.Value);
-                return CreatedAtAction(nameof(GetMyRating), new { bookId }, rating);
+                // Validate anonymous rating
+                if (createRatingDto.IsAnonymous && string.IsNullOrWhiteSpace(createRatingDto.AnonymousUsername))
+                {
+                    return BadRequest(new { message = "Anonymous username is required for anonymous ratings" });
+                }
+
+                // Require authentication for non-anonymous ratings
+                if (!createRatingDto.IsAnonymous && !userId.HasValue)
+                {
+                    return Unauthorized(new { message = "Authentication required for non-anonymous ratings" });
+                }
+
+                var rating = await _ratingsService.CreateRatingAsync(bookId, createRatingDto, userId);
+                return CreatedAtAction(nameof(GetBookRatings), new { bookId }, rating);
             }
             catch (InvalidOperationException ex)
             {
