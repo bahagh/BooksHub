@@ -11,7 +11,6 @@ import {
   Button,
   Avatar,
   Chip,
-  CircularProgress,
   Alert,
   Skeleton,
 } from '@mui/material';
@@ -51,6 +50,7 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboardData = async () => {

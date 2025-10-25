@@ -49,6 +49,7 @@ export const BookComments: React.FC<BookCommentsProps> = ({
 
   useEffect(() => {
     loadComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId]);
 
   const loadComments = async () => {

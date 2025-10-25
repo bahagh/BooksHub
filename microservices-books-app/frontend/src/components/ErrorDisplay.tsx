@@ -14,7 +14,6 @@ import {
   Error,
   Warning,
   Info,
-  CheckCircle,
   ExpandMore,
   ExpandLess,
   Refresh,

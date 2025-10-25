@@ -6,7 +6,6 @@ import {
   Box,
   Grid,
   CircularProgress,
-  Alert,
   Card,
   CardContent,
   CardActions,
@@ -50,6 +49,7 @@ const MyLibraryPage: React.FC = () => {
       return;
     }
     loadLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, user]);
 
   const loadLibrary = async () => {

@@ -11,11 +11,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  Chip,
   CircularProgress,
 } from '@mui/material';
 import {
-  Edit as EditIcon,
   Book as BookIcon,
   Star as StarIcon,
   Comment as CommentIcon,
@@ -34,6 +32,7 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     loadUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUserData = async () => {

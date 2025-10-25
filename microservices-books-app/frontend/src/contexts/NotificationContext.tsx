@@ -218,7 +218,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         newConnection.stop();
       }
     };
-  }, [isAuthenticated, token, fetchNotifications, fetchUnreadCount, fetchPreferences]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token]);
 
   // Request browser notification permission
   useEffect(() => {

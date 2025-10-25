@@ -53,6 +53,7 @@ export const MyBooksPage: React.FC = () => {
     if (user) {
       loadBooks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadBooks = async () => {

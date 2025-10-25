@@ -36,6 +36,7 @@ const NotificationList: React.FC = () => {
 
   useEffect(() => {
     fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterChange = (_event: React.SyntheticEvent, newValue: 'all' | 'unread' | 'read') => {

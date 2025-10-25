@@ -13,7 +13,6 @@ import {
   Alert,
   Card,
   CardContent,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -64,6 +63,7 @@ const BookDetailsPage: React.FC = () => {
     viewCountedRef.current = false;
     loadBook();
     checkLibraryStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadBook = async () => {

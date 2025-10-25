@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { booksService } from '../../services/booksService';
-import ErrorDisplay from '../../components/ErrorDisplay';
 import { Book, UpdateBookRequest } from '../../types';
 import {
   Container,
@@ -101,6 +100,7 @@ export const EditBookPage: React.FC = () => {
 
   useEffect(() => {
     loadBook();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadBook = async () => {

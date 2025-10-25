@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { booksService } from '../../services/booksService';
 import ErrorDisplay from '../../components/ErrorDisplay';
-import { Book, CreateBookRequest } from '../../types';
 
 interface CreateBookForm {
   title: string;

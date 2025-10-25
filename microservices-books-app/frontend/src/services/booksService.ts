@@ -15,7 +15,6 @@ import {
   CommentQueryParams,
   BookAnalytics,
   BookRecommendation,
-  ApiResponse,
   PaginatedResponse,
 } from '../types';
 

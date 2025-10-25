@@ -44,6 +44,7 @@ export const BookRating: React.FC<BookRatingProps> = ({
 
   useEffect(() => {
     loadUserRating();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId]);
 
   const loadUserRating = async () => {

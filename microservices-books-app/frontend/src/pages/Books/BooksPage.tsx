@@ -52,6 +52,7 @@ const BooksPage: React.FC = () => {
   // Load books when filters change
   useEffect(() => {
     loadBooks(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedGenre, sortBy]);
 
   const loadGenres = async () => {

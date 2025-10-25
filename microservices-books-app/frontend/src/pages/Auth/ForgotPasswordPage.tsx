@@ -10,7 +10,7 @@ import {
   CircularProgress,
   Link as MuiLink,
 } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import EmailIcon from '@mui/icons-material/Email';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { authService } from '../../services/authService';
@@ -20,7 +20,6 @@ export const ForgotPasswordPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

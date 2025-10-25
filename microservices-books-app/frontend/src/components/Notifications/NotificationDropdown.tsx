@@ -38,6 +38,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     if (open && notifications.length === 0) {
       fetchNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleViewAll = () => {

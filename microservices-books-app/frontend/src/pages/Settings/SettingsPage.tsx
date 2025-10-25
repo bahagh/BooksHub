@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
-  Paper,
   Box,
   Grid,
   Switch,
-  FormControlLabel,
   Divider,
   Button,
-  TextField,
   Select,
   MenuItem,
   FormControl,
@@ -34,7 +31,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 const SettingsPage: React.FC = () => {
-  const { user } = useAuth();
   const { preferences, updatePreferences } = useNotifications();
   const [success, setSuccess] = useState<string>('');
   const [error, setError] = useState<string>('');
