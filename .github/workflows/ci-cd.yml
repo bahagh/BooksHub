@@ -133,7 +133,7 @@ jobs:
     - name: Build and push UserService Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./microservices-books-app/services/UserService
+        context: ./microservices-books-app/services/UserService/UserService
         file: ./microservices-books-app/services/UserService/UserService/Dockerfile
         push: true
         tags: |
@@ -145,7 +145,7 @@ jobs:
     - name: Build and push BooksService Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./microservices-books-app/services/BooksService
+        context: ./microservices-books-app/services/BooksService/BooksService
         file: ./microservices-books-app/services/BooksService/BooksService/Dockerfile
         push: true
         tags: |
@@ -157,7 +157,7 @@ jobs:
     - name: Build and push ApiGateway Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./microservices-books-app/api-gateway
+        context: ./microservices-books-app/api-gateway/ApiGateway
         file: ./microservices-books-app/api-gateway/ApiGateway/Dockerfile
         push: true
         tags: |
