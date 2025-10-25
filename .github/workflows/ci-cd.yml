@@ -10,6 +10,7 @@ on:
 env:
   DOCKER_REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  REPO_LOWER: ${{ github.repository_owner }}/books-project-restructured
 
 jobs:
   # Backend - UserService
@@ -136,8 +137,8 @@ jobs:
         file: ./microservices-books-app/services/UserService/UserService/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/userservice:latest
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/userservice:${{ github.sha }}
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/userservice:latest
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/userservice:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
@@ -148,8 +149,8 @@ jobs:
         file: ./microservices-books-app/services/BooksService/BooksService/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/booksservice:latest
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/booksservice:${{ github.sha }}
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/booksservice:latest
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/booksservice:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
@@ -160,8 +161,8 @@ jobs:
         file: ./microservices-books-app/api-gateway/ApiGateway/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/apigateway:latest
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/apigateway:${{ github.sha }}
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/apigateway:latest
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/apigateway:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
@@ -172,8 +173,8 @@ jobs:
         file: ./microservices-books-app/frontend/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/frontend:latest
-          ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/frontend:${{ github.sha }}
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/frontend:latest
+          ${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/frontend:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -189,10 +190,10 @@ jobs:
         echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "Docker images have been pushed to GitHub Container Registry:" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/userservice:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/booksservice:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/apigateway:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/frontend:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/userservice:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/booksservice:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/apigateway:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ env.DOCKER_REGISTRY }}/${{ env.REPO_LOWER }}/frontend:latest\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps for Deployment:" >> $GITHUB_STEP_SUMMARY
         echo "1. Sign up for a free account at [Render.com](https://render.com)" >> $GITHUB_STEP_SUMMARY
