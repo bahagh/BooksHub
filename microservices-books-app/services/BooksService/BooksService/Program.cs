@@ -57,9 +57,20 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Database
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? throw new InvalidOperationException("Database connection string not configured");
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Convert Railway's PostgreSQL URL format to Npgsql connection string
+    var uri = new Uri(databaseUrl);
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException("Database connection string not configured");
+}
 
 builder.Services.AddDbContext<BooksDbContext>(options =>
     options.UseNpgsql(connectionString));
