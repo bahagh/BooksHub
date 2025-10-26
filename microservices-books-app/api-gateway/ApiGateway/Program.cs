@@ -42,7 +42,12 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins("http://localhost:3000", "http://localhost")
+        builder.WithOrigins(
+                "http://localhost:3000", 
+                "http://localhost",
+                "https://localhost:3000",
+                "https://frontend-production-9845.up.railway.app"
+            )
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
