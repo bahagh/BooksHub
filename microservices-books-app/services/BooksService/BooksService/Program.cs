@@ -57,8 +57,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? builder.Configuration["DATABASE_URL"]
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Database connection string not configured");
 
 builder.Services.AddDbContext<BooksDbContext>(options =>
