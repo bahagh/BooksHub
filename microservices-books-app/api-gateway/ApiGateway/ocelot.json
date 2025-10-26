@@ -5,7 +5,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "user-service",
+          "Host": "userservice.railway.internal",
           "Port": 5555
         }
       ],
@@ -18,7 +18,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "user-service",
+          "Host": "userservice.railway.internal",
           "Port": 5555
         }
       ],
@@ -30,7 +30,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "user-service",
+          "Host": "userservice.railway.internal",
           "Port": 5555
         }
       ],
@@ -42,7 +42,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "user-service",
+          "Host": "userservice.railway.internal",
           "Port": 5555
         }
       ],
@@ -54,7 +54,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "books-service",
+          "Host": "bookservice.railway.internal",
           "Port": 5556
         }
       ],
@@ -66,7 +66,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "books-service",
+          "Host": "bookservice.railway.internal",
           "Port": 5556
         }
       ],
@@ -78,7 +78,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "books-service",
+          "Host": "bookservice.railway.internal",
           "Port": 5556
         }
       ],
@@ -91,7 +91,7 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "books-service",
+          "Host": "bookservice.railway.internal",
           "Port": 5556
         }
       ],
@@ -111,7 +111,7 @@
         {
           "Name": "User Service API",
           "Version": "v1",
-          "Url": "http://user-service:5555/swagger/v1/swagger.json"
+          "Url": "http://userservice.railway.internal:5555/swagger/v1/swagger.json"
         }
       ]
     },
@@ -121,7 +121,7 @@
         {
           "Name": "Books Service API",
           "Version": "v1",
-          "Url": "http://books-service:5556/swagger/v1/swagger.json"
+          "Url": "http://bookservice.railway.internal:5556/swagger/v1/swagger.json"
         }
       ]
     }
