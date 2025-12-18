@@ -93,6 +93,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                // SignalR sends JWT token as query parameter for WebSocket connections
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
             OnAuthenticationFailed = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -205,11 +217,18 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins(
-                "http://localhost:3000", 
-                "https://localhost:3000",
-                "https://frontend-production-9845.up.railway.app"
-            )
+        builder.SetIsOriginAllowed(origin =>
+            {
+                // Allow localhost for development
+                if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
+                    return true;
+                
+                // Allow any Railway frontend deployment
+                if (origin.Contains("frontend-production") && origin.Contains("up.railway.app"))
+                    return true;
+                
+                return false;
+            })
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials(); // Required for SignalR
