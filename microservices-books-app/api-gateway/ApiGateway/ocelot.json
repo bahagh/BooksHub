@@ -15,7 +15,7 @@
     },
     {
       "DownstreamPathTemplate": "/hubs/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "ws",
       "DownstreamHostAndPorts": [
         {
           "Host": "userservice.railway.internal",
@@ -23,7 +23,8 @@
         }
       ],
       "UpstreamPathTemplate": "/hubs/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "DangerousAcceptAnyServerCertificateValidator": true
     },
     {
       "DownstreamPathTemplate": "/api/notifications/{everything}",

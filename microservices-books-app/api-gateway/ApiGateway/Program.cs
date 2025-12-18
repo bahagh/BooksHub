@@ -37,6 +37,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Add Ocelot
 builder.Services.AddOcelot();
 
+// Add SignalR for WebSocket proxying
+builder.Services.AddSignalR();
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -61,6 +64,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
+
+// Enable WebSocket support
+app.UseWebSockets();
 
 app.UseCors();
 app.UseAuthentication();
