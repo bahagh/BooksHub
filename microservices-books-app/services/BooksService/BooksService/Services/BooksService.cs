@@ -356,19 +356,23 @@ namespace BooksService.Services
         {
             if (!string.IsNullOrEmpty(searchDto.SearchTerm))
             {
-                query = query.Where(b => b.Title.Contains(searchDto.SearchTerm) ||
-                                        (b.Description != null && b.Description.Contains(searchDto.SearchTerm)) ||
-                                        (b.Author != null && b.Author.Contains(searchDto.SearchTerm)));
+                // Use PostgreSQL ILike for case-insensitive search with better performance
+                var searchPattern = $"%{searchDto.SearchTerm}%";
+                query = query.Where(b => EF.Functions.ILike(b.Title, searchPattern) ||
+                                        (b.Description != null && EF.Functions.ILike(b.Description, searchPattern)) ||
+                                        (b.Author != null && EF.Functions.ILike(b.Author, searchPattern)));
             }
 
             if (!string.IsNullOrEmpty(searchDto.Author))
             {
-                query = query.Where(b => b.Author != null && b.Author.Contains(searchDto.Author));
+                var authorPattern = $"%{searchDto.Author}%";
+                query = query.Where(b => b.Author != null && EF.Functions.ILike(b.Author, authorPattern));
             }
 
             if (!string.IsNullOrEmpty(searchDto.Genre))
             {
-                query = query.Where(b => b.Genre != null && b.Genre.Contains(searchDto.Genre));
+                var genrePattern = $"%{searchDto.Genre}%";
+                query = query.Where(b => b.Genre != null && EF.Functions.ILike(b.Genre, genrePattern));
             }
 
             if (!string.IsNullOrEmpty(searchDto.Language))
