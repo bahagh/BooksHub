@@ -11,9 +11,6 @@ import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Use API Gateway for REST APIs
-const API_GATEWAY_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:5000';
-
 // Use UserService directly for SignalR (better performance for WebSocket connections)
 const USER_SERVICE_URL = process.env.REACT_APP_USER_SERVICE_URL || 'http://localhost:5555';
 
