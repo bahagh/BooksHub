@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using UserService.Data;
 using UserService.DTOs;
 using UserService.Models;
+using UserService.Hubs;
 
 namespace UserService.Services
 {
@@ -10,15 +12,18 @@ namespace UserService.Services
         private readonly UserDbContext _context;
         private readonly ILogger<NotificationService> _logger;
         private readonly IEmailService _emailService;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
         public NotificationService(
             UserDbContext context,
             ILogger<NotificationService> logger,
-            IEmailService emailService)
+            IEmailService emailService,
+            IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _logger = logger;
             _emailService = emailService;
+            _hubContext = hubContext;
         }
 
         public async Task<NotificationDto> CreateNotificationAsync(CreateNotificationDto dto)
@@ -41,7 +46,22 @@ namespace UserService.Services
 
                 _logger.LogInformation($"Created notification {notification.Id} for user {dto.UserId}");
 
-                return MapToDto(notification);
+                var notificationDto = MapToDto(notification);
+
+                // Send real-time notification via SignalR to the user's group
+                try
+                {
+                    await _hubContext.Clients.Group($"user_{dto.UserId}")
+                        .SendAsync("ReceiveNotification", notificationDto);
+                    _logger.LogInformation($"Sent real-time notification to user {dto.UserId}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to send real-time notification to user {dto.UserId}");
+                    // Don't fail the whole operation if SignalR fails
+                }
+
+                return notificationDto;
             }
             catch (Exception ex)
             {
