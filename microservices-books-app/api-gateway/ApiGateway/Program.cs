@@ -45,12 +45,18 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins(
-                "http://localhost:3000", 
-                "http://localhost",
-                "https://localhost:3000",
-                "https://frontend-production-9845.up.railway.app"
-            )
+        builder.SetIsOriginAllowed(origin =>
+        {
+            // Allow localhost for development
+            if (origin.StartsWith("http://localhost") || origin.StartsWith("https://localhost"))
+                return true;
+            
+            // Allow Railway frontend deployments
+            if (origin.Contains("frontend-production") && origin.Contains("up.railway.app"))
+                return true;
+            
+            return false;
+        })
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
