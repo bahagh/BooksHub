@@ -11,8 +11,11 @@ import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Use API Gateway for SignalR connections
+// Use API Gateway for REST APIs
 const API_GATEWAY_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:5000';
+
+// Use UserService directly for SignalR (better performance for WebSocket connections)
+const USER_SERVICE_URL = process.env.REACT_APP_USER_SERVICE_URL || 'http://localhost:5555';
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { isAuthenticated, token } = useAuth();
@@ -138,9 +141,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return;
     }
 
-    // Create SignalR connection
+    // Create SignalR connection directly to UserService (bypasses API Gateway for WebSocket performance)
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${API_GATEWAY_URL}/hubs/notifications`, {
+      .withUrl(`${USER_SERVICE_URL}/hubs/notifications`, {
         accessTokenFactory: () => token,
         withCredentials: true,
       })

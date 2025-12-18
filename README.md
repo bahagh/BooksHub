@@ -16,31 +16,33 @@ The application follows a **microservices architecture** pattern with the follow
 ┌─────────────────────────────────────────────────────────────┐
 │                         Frontend (React)                     │
 │                    https://frontend.railway.app              │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ HTTPS/WSS
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API Gateway (Ocelot)                      │
-│              Route Aggregation & Load Balancing              │
-└──────┬────────────────────────────────────┬─────────────────┘
-       │                                    │
-       ▼                                    ▼
-┌──────────────────┐              ┌──────────────────────┐
-│  UserService     │              │   BooksService       │
-│  Port: 5555      │              │   Port: 5556         │
-│                  │              │                      │
-│ - Authentication │              │ - Books CRUD         │
-│ - User Mgmt      │              │ - Library Mgmt       │
-│ - Notifications  │◄────────────►│ - Ratings/Comments   │
-│ - SignalR Hub    │     HTTP     │ - Analytics          │
-└────────┬─────────┘              └──────────┬───────────┘
-         │                                   │
-         └───────────┬───────────────────────┘
-                     ▼
-            ┌─────────────────┐
-            │   PostgreSQL    │
-            │   Shared DB     │
-            └─────────────────┘
+└───────┬─────────────────────────────────────────┬───────────┘
+        │ REST APIs (HTTPS)                       │ WebSocket
+        │                                         │ (SignalR)
+        ▼                                         ▼
+┌───────────────────────────┐         ┌──────────────────┐
+│   API Gateway (Ocelot)    │         │  UserService     │
+│  Route Aggregation        │         │  Port: 5555      │
+└──────┬────────────────┬───┘         │                  │
+       │                │              │ - Authentication │
+       ▼                ▼              │ - User Mgmt      │
+┌──────────────┐  ┌──────────────┐    │ - Notifications  │
+│ UserService  │  │ BooksService │◄───┤ - SignalR Hub    │
+│ (REST APIs)  │  │  Port: 5556  │    └────────┬─────────┘
+│              │  │              │             │
+│              │  │ - Books CRUD │             │
+│              │  │ - Library    │             │
+│              │  │ - Ratings    │             │
+└──────┬───────┘  └──────┬───────┘             │
+       │                 │                     │
+       └────────┬────────┴─────────────────────┘
+                ▼
+       ┌─────────────────┐
+       │   PostgreSQL    │
+       │   Shared DB     │
+       └─────────────────┘
+
+Note: SignalR connects directly to UserService for optimal WebSocket performance
 ```
 
 ### Service Responsibilities
@@ -323,8 +325,24 @@ books/
 - `Jwt__Audience` - Token audience
 
 **Frontend:**
-- `REACT_APP_API_GATEWAY_URL` - Public ApiGateway URL
+- `REACT_APP_API_GATEWAY_URL` - Public ApiGateway URL (for REST APIs)
+- `REACT_APP_USER_SERVICE_URL` - Public UserService URL (for SignalR WebSocket)
 - `REACT_APP_GOOGLE_CLIENT_ID` - Google OAuth client ID
+
+---
+
+## 📡 **Real-Time Architecture Note**
+
+**Why SignalR Connects Directly to UserService:**
+
+For optimal real-time performance, SignalR WebSocket connections bypass the API Gateway and connect directly to UserService. This is an industry-standard practice because:
+
+- **WebSocket Performance:** Direct connections eliminate proxy overhead
+- **Connection Stability:** Reduces disconnections and 503 errors
+- **Lower Latency:** No intermediate routing for real-time messages
+- **Scalability:** Gateway can focus on REST API routing
+
+REST APIs continue to route through the API Gateway for security, rate limiting, and unified access control. This hybrid approach is used by companies like Microsoft, Slack, and Discord for their real-time features.
 
 ---
 
